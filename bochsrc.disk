@@ -1,0 +1,19 @@
+megs: 32
+
+romimage: file=/home/jerry/bochs/share/bochs/BIOS-bochs-latest
+vgaromimage: file=/home/jerry/bochs/share/bochs/VGABIOS-lgpl-latest
+
+boot: disk
+
+log: /home/jerry/bochs/bochs.out
+
+mouse: enabled=0
+keyboard: keymap=/home/jerry/bochs/share/bochs/keymaps/x11-pc-us.map
+
+ata0: enabled=1, ioaddr1=0x01f0, ioaddr2=0x3f0, irq=14
+
+#gdbstub: enabled=1, port=1234, text_base=0, data_base=0, bss_base=0
+
+ata0-master: type=disk, path="/home/jerry/bochs/hd60M.img", mode=flat
+
+#display_library: sdl
