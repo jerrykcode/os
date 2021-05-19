@@ -5,7 +5,7 @@ vgaromimage: file=/home/jerry/bochs/share/bochs/VGABIOS-lgpl-latest
 
 boot: disk
 
-log: /home/jerry/bochs/bochs.out
+log: bochs.out
 
 mouse: enabled=0
 keyboard: keymap=/home/jerry/bochs/share/bochs/keymaps/x11-pc-us.map
