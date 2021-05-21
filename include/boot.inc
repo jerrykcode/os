@@ -1,5 +1,9 @@
+;---------------------- loader和kernel -------------------------
+
 LOADER_BASE_ADDR equ 0x900  ; loader载入内存的位置
 LOADER_START_SECTOR equ 0x2 ; loader在硬盘上的逻辑扇区地址
+
+PAGE_DIR_TABLE_POS  equ 0x100000
 
 ;----------------------- gdt 描述符属性 ------------------------
 DESC_G_4K           equ 10000000_00000000_00000000b ; 23位
@@ -56,3 +60,10 @@ RPL2                equ 10b
 RPL3                equ 11b
 TI_GDT              equ 000b
 TI_LDT              equ 100b
+
+; ----------------------------- 页表属性 -----------------------------
+PG_P                equ 1b
+PG_RW_R             equ 00b
+PG_RW_W             equ 10b
+PG_US_S             equ 000b
+PG_US_U             equ 100b

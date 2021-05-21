@@ -177,4 +177,74 @@ p_mode_start:
     
     mov byte [gs:160], 'P'
 
+; 创建页目录及页表
+    call setup_page
+
+    sgdt [gdt_ptr]
+    mov ebx, [gdt_ptr + 2]
+    or dword [ebx + 0x18 + 4], 0xc0000000
+    add dword [gdt_ptr + 2], 0xc0000000
+    add esp, 0xc0000000
+
+; 把页目录地址赋值给cr3
+    mov eax, PAGE_DIR_TABLE_POS
+    mov cr3, eax
+
+; 打开cr0的pg位(第31位)
+    mov eax, cr0
+    or eax, 0x80000000
+    mov cr0, eax
+
+; 开启分页后，用新的gdt地址重新加载
+    lgdt [gdt_ptr]
+
+    mov byte [gs:162], 'V'
+
     jmp $
+
+; ------------------ 创建页目录及页表函数
+
+setup_page:
+
+; 为页目录清空空间(4096字节)
+    mov cx, 0x1000
+    mov esi, 0
+.clear_page_dir:
+    mov byte [PAGE_DIR_TABLE_POS + esi], 0
+    inc esi
+    loop .clear_page_dir
+
+; 创建页目录项PDE
+    mov eax, PAGE_DIR_TABLE_POS
+    add eax, 0x1000
+    mov ebx, eax                            ; ebx记录首个页表的位置
+
+    or eax, PG_US_U | PG_RW_W | PG_P
+    mov [PAGE_DIR_TABLE_POS], eax           ; 页目录表中的首个页目录项，指向eax
+    mov [PAGE_DIR_TABLE_POS + 0xc00], eax   ; 0xc00以上的目录项用于内核空间
+    sub eax, 0x1000                         ; 此时eax为页目录表的基址
+    mov [PAGE_DIR_TABLE_POS + 0xffc], eax   ; 页目录表中最后一个页目录指向eax, 即页目录表本身的基址
+   
+; 创建首个页表PTE(地址PAGE_DIR_TABLE_POS + 0x1000)
+    mov cx, 256                             ; 每页4KB, 256页表达1MB低端内存
+    mov edx, PG_US_U | PG_RW_W | PG_P
+.create_pte:
+    mov [ebx], edx
+    add ebx, 4
+    add edx, 0x1000
+    loop .create_pte
+
+; 创建内核其他页表的PDE
+    mov cx, 254
+    mov ebx, PAGE_DIR_TABLE_POS
+    mov edx, ebx
+    add ebx, 0xc04
+    add edx, 0x2000
+    or edx, PG_US_U | PG_RW_W | PG_P
+.create_pde:
+    mov [ebx], edx
+    add ebx, 4
+    add edx, 0x1000
+    loop .create_pde
+
+    ret
