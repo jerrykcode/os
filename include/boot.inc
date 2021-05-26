@@ -3,6 +3,16 @@
 LOADER_BASE_ADDR equ 0x900  ; loader载入内存的位置
 LOADER_START_SECTOR equ 0x2 ; loader在硬盘上的逻辑扇区地址
 
+KERNEL_START_SECTOR equ 0x9 ; kernel.bin在硬盘上的逻辑扇区地址
+KERNEL_BIN_BASE_ADDR equ 0x70000 ; kernel载入内存的位置
+
+; kernel.bin ELF格式中的属性
+KERNEL_E_PHOFF_ADDR      equ KERNEL_BIN_BASE_ADDR + 28
+KERNEL_E_PHENTSIZE_ADDR  equ KERNEL_BIN_BASE_ADDR + 42
+KERNEL_E_PHNUM_ADDR      equ KERNEL_BIN_BASE_ADDR + 44
+
+KERNEL_ENTRY_POINT  equ 0xc0001500 ;
+
 PAGE_DIR_TABLE_POS  equ 0x100000
 
 ;----------------------- gdt 描述符属性 ------------------------
@@ -67,3 +77,6 @@ PG_RW_R             equ 00b
 PG_RW_W             equ 10b
 PG_US_S             equ 000b
 PG_US_U             equ 100b
+
+; ----------------------------- program type 定义 --------------------
+PT_NULL             equ 0

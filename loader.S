@@ -46,7 +46,9 @@ ards_buf times 20 db 0
 
 loader_start:
 
+; ---------------------------------------------
 ; 在实模式下输出 HELLO LOADER
+; ---------------------------------------------
     mov byte [gs:0x1A], 'H'
     mov byte [gs:0x1B], 0xA9
 
@@ -84,7 +86,10 @@ loader_start:
     mov byte [gs:0x30], 'R'
     mov byte [gs:0x31], 0xA9
 
-; ---------------- 检测内存容量
+; ---------------------------------------------
+; 检测内存容量
+; ---------------------------------------------
+
 
 ; 尝试使用BIOS中断0x15子功能0xe820获取内存容量
 	xor ebx, ebx		; 首次调用时ebx置0
@@ -146,17 +151,19 @@ loader_start:
 .mem_get_ok:
     mov [total_mem_bytes], edx
 
+; ---------------------------------------------
 ; 进入保护模式
+; ---------------------------------------------
 
-; --------------- 打开 A20
+; 打开 A20
     in al, 0x92
     or al, 0000_0010b
     out 0x92, al
 
-; --------------- 加载gdt
+; 加载gdt
     lgdt [gdt_ptr]
 
-; --------------- cr0 第0位置1
+; cr0 第0位置1
     mov eax, cr0
     or eax, 0x00000001
     mov cr0, eax
@@ -177,7 +184,18 @@ p_mode_start:
     
     mov byte [gs:160], 'P'
 
+; ---------------------------------------------
+; 加载内核
+; ---------------------------------------------
+    mov eax, KERNEL_START_SECTOR    ; kernel.bin所在的扇区号
+    mov ebx, KERNEL_BIN_BASE_ADDR   ; kernel载入的内存位置
+    mov ecx, 200                    ; 读入的扇区数
+
+    call rd_disk_m_32
+
+; ---------------------------------------------
 ; 创建页目录及页表
+; ---------------------------------------------
     call setup_page
 
     sgdt [gdt_ptr]
@@ -200,7 +218,81 @@ p_mode_start:
 
     mov byte [gs:162], 'V'
 
-    jmp $
+; ---------------------------------------------
+; 初始化内核
+; ---------------------------------------------
+    jmp SELECTOR_CODE:enter_kernel
+enter_kernel:
+    call kernel_init
+    mov esp, 0xc009f000
+    jmp KERNEL_ENTRY_POINT
+
+; ---------------------------------------------
+; 以下是 rd_disk_m_32, setup_page 以及 kernel_init 函数的实现
+; ---------------------------------------------
+
+; ------------------ 32位读取硬盘函数
+; 参数: eax LBA扇区号
+;       ebx 数据写入内存的位置
+;       ecx 读入的扇区数
+
+rd_disk_m_32:
+
+    mov esi, eax    ; 备份eax
+    mov di, cx      ; 备份cx
+
+; 设置读入的扇区数
+    mov dx, 0x1f2
+    mov al, cl
+    out dx, al      ; 将al(读入的扇区数)存入0x1f2
+
+    mov eax, esi    ; 还原eax
+
+; 将LBA地址存入0x1f3~0x1f6
+    mov dx, 0x1f3
+    out dx, al
+
+    mov dx, 0x1f4
+    mov cl, 8
+    shr eax, cl
+    out dx, al
+
+    mov dx, 0x1f5
+    shr eax, cl
+    out dx, al
+
+    mov dx, 0x1f6
+    shr eax, cl
+    and al, 0x0f    ; 取al的低4位，即LBA地址的第24~27位
+    or al, 0xe0     
+    out dx, al
+
+; 将读命令0x20 写入0x1f7
+    mov dx, 0x1f7
+    mov al, 0x20
+    out dx, al
+
+; 检测硬盘状态
+.not_ready:
+    nop
+    in al, dx
+    and al, 0x08
+    cmp al, 0x08
+    jnz .not_ready
+
+; 从0x1f0读数据
+    mov ax, di
+    mov dx, 0x100
+    mul dx
+    mov cx, ax
+    mov dx, 0x1f0
+.read_loop:
+    in ax, dx
+    mov [ebx], ax
+    add ebx, 2
+    loop .read_loop
+    ret
+
 
 ; ------------------ 创建页目录及页表函数
 
@@ -247,4 +339,52 @@ setup_page:
     add edx, 0x1000
     loop .create_pde
 
+    ret
+
+; --------------------- 初始化内核函数
+; 将kernel.bin中的segement拷贝到编译的地址
+
+kernel_init:
+    xor eax, eax
+    xor ebx, ebx
+    xor ecx, ecx
+    xor edx, edx
+
+    mov ebx, [KERNEL_E_PHOFF_ADDR]      ; kernel.bin的e_phoff, 表示首个program header在文件中的偏移量
+    add ebx, KERNEL_BIN_BASE_ADDR       ; 加上文件起始地址
+    mov edx, [KERNEL_E_PHENTSIZE_ADDR]  ; e_phentsize, 表示program header大小
+    mov ecx, [KERNEL_E_PHNUM_ADDR]      ; e_phnum, 表示program header的数量
+.each_segment:
+    cmp byte [ebx], PT_NULL
+    je .prepare_next_segment
+    ; 为调用mem_cpy函数准备参数
+    push dword [ebx + 16]               ; program header中偏移16字节存储的是p_filesz
+    mov eax, [ebx + 4]                  ; 偏移4字节的地方是p_offset
+    add eax, KERNEL_BIN_BASE_ADDR       ; eax的值为p_offset + kernel.bin文件起始地址
+    push eax                            ; 压入eax
+    push dword [ebx + 8]                ; program header中偏移8字节存储的是p_vaddr
+    ; 此时栈中已压入了mem_cpy的3个参数 size, 源地址，目的地址
+    call mem_cpy
+    add esp, 12                         ; 清理栈
+
+.prepare_next_segment:
+    add ebx, edx
+    loop .each_segment
+    ret
+
+; ----------------- mem_cpy函数
+
+mem_cpy:
+    cld
+    push ebp            ; 备份ebp
+    push ecx            ; 备份ecx
+    mov ebp, esp
+    mov edi, [ebp + 12] ; 目的地址
+    mov esi, [ebp + 16] ; 源地址
+    mov ecx, [ebp + 20] ; size
+
+    rep movsb
+
+    pop ecx             ; 还原ecx
+    pop ebp             ; 还原ebp
     ret
