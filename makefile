@@ -1,18 +1,20 @@
-BOCHS = bochs
-VDISK = /home/jerry/bochs/hd60M.img
-BOCHSRC = bochsrc.disk
+TARGET = mbr.bin loader.bin kernel.bin
 
-INCLUDE = -I include/
+mbr.bin: mbr.S
+	nasm -I include/ -o $@ $<
+loader.bin: loader.S
+	nasm -I include/ -o $@ $<
 
-run : ${VDISK}
-	${BOCHS} -f ${BOCHSRC}
+OBJS = main.o print.o
 
-${VDISK} : mbr.bin loader.bin
-	dd if=mbr.bin of=${VDISK} bs=512 count=1 conv=notrunc
-	dd if=loader.bin of=${VDISK} bs=512 count=4 seek=2 conv=notrunc
+kernel.bin: $(OBJS)
+	ld -Ttext 0xc0001500 -e main -o $@ $^
 
-%.bin : %.S
-	nasm ${INCLUDE} -o $@ $<
+print.o: lib/kernel/print.S
+	nasm -f elf -o $@ $<
 
-clean : 
-	rm *.bin
+main.o: kernel/main.c
+	gcc -I lib/kernel/ -c -o $@ $<
+
+clean: 
+	rm *.o *.bin
