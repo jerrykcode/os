@@ -1,8 +1,8 @@
 TARGET = mbr.bin loader.bin kernel.bin
 
-mbr.bin: mbr.S
+mbr.bin: boot/mbr.S
 	nasm -I include/ -o $@ $<
-loader.bin: loader.S
+loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
 OBJS = main.o print.o
