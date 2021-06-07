@@ -147,27 +147,25 @@ put_char:
 ; ----------------------------------------------------
 global put_str
 put_str:
-    push eax
     push ebx
     push edx
     push ebp
     mov ebp, esp
     
-    mov ebx, [ebp + 20]
+    mov ebx, [ebp + 16]
     xor eax, eax
     xor edx, edx
 .each_char:
-    mov dl, [ebx + eax]
+    mov dl, [ebx]
     cmp dl, 0x00
     jz .end
     push edx
     call put_char
     add esp, 4
-    inc eax
+    inc ebx
     jmp .each_char
 .end:
     pop ebp
     pop edx
     pop ebx
-    pop eax
     ret
