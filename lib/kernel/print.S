@@ -7,6 +7,7 @@ section .text
 
 ; ----------------------------------------------------
 ; put_char函数
+; 功能 打印单个字符
 ; ----------------------------------------------------
 global put_char
 put_char:
@@ -137,4 +138,36 @@ put_char:
     pop ebx
     pop eax
 
+    ret
+
+
+; ----------------------------------------------------
+; put_str函数
+; 功能 打印字符串
+; ----------------------------------------------------
+global put_str
+put_str:
+    push eax
+    push ebx
+    push edx
+    push ebp
+    mov ebp, esp
+    
+    mov ebx, [ebp + 20]
+    xor eax, eax
+    xor edx, edx
+.each_char:
+    mov dl, [ebx + eax]
+    cmp dl, 0x00
+    jz .end
+    push edx
+    call put_char
+    add esp, 4
+    inc eax
+    jmp .each_char
+.end:
+    pop ebp
+    pop edx
+    pop ebx
+    pop eax
     ret

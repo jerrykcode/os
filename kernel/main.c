@@ -16,6 +16,9 @@ int main() {
     put_char('2');
     put_char('\b');
     put_char('3');
+
+    put_str("\nThis is a char string\n");
+
     while (1) {}
     return (0);
 }
