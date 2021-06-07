@@ -19,6 +19,17 @@ int main() {
 
     put_str("\nThis is a char string\n");
 
+    put_int_hex(0);
+    put_char('\n');
+    
+    put_int_hex(255);
+    put_char('\n');
+
+    put_int_hex(0x12345678);
+    put_char('\n');
+    
+    put_int_hex(0x00000000);
+
     while (1) {}
     return (0);
 }

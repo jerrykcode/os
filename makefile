@@ -13,8 +13,9 @@ kernel.bin: $(OBJS)
 print.o: lib/kernel/print.S
 	nasm -f elf -o $@ $<
 
+CFLAGS += -std=c99
 main.o: kernel/main.c
-	gcc -I lib/kernel/ -c -o $@ $<
+	gcc -I lib/kernel/ -c -o $@ $< $(CFLAGS)
 
 clean: 
 	rm *.o *.bin

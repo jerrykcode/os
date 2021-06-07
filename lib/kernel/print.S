@@ -153,7 +153,6 @@ put_str:
     mov ebp, esp
     
     mov ebx, [ebp + 16]
-    xor eax, eax
     xor edx, edx
 .each_char:
     mov dl, [ebx]
@@ -167,5 +166,72 @@ put_str:
 .end:
     pop ebp
     pop edx
+    pop ebx
+    ret
+
+
+; ----------------------------------------------------
+; put_int_hex函数
+; 功能 打印16进制数字
+; ----------------------------------------------------
+global put_int_hex
+put_int_hex:
+    push ebx
+    push ecx
+    push edx
+    push ebp
+
+    mov ebp, esp
+    mov ebx, [ebp + 20]
+
+    mov ecx, 8
+.pre_zero:
+    ; 处理前驱数字0
+    ; 前驱0不打印
+    mov edx, ebx
+    and edx, 0xf0000000     ; 获取edx最高4位
+    shr edx, 28
+    cmp edx, 0
+    jne .put_digits         ; edx != 0, 前驱0已处理完毕，提前跳出循环
+    shl ebx, 4              ; 处理下一个4位
+    loop .pre_zero
+
+.put_digits:
+    ; 打印数字
+    cmp ecx, 0
+    jg .each_digit        ; 若ecx大于0则说明待打印数字不为0，跳转.each_digit处打印每位数字
+
+    ; ecx为0说明待打印数字为0x00000000，调用put_char打印一个0即可
+    push '0'
+    call put_char
+    add esp, 4
+    jmp .end
+
+.each_digit:
+    ; 循环打印每位数字
+    ; 此时ecx在.pre_zero循环中已经更新为前驱0之后剩下的需要打印的数字数量
+    mov edx, ebx
+    and edx, 0xf0000000     ; 获取最高4位
+    shr edx, 28
+    cmp edx, 10
+    jl .digit_0_to_9
+.digit_A_to_F:
+    ; edx更新为数字A~F的ASCII码
+    sub edx, 10
+    add edx, 'A'
+    jmp .call_put_char
+.digit_0_to_9:
+    add edx, '0'            ; edx更新为数字0~9的ASCII码
+.call_put_char:
+    push edx
+    call put_char
+    add esp, 4
+    shl ebx, 4              ; 处理下一个4位
+    loop .each_digit
+
+.end:
+    pop ebp
+    pop edx
+    pop ecx
     pop ebx
     ret
