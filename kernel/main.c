@@ -1,4 +1,7 @@
 #include "print.h"
+#include "init.h"
+#include "asm.h"
+
 int main() {
     put_char('h');
     put_char('e');
@@ -30,6 +33,8 @@ int main() {
     
     put_int_hex(0x00000000);
 
+    init_all();
+    asm volatile("sti");
     while (1) {}
     return (0);
 }
