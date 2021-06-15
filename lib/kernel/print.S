@@ -100,11 +100,11 @@ put_char:
     mov esi, 0xb80a0        ; 源地址: 第1行第0列
     mov edi, 0xb8000        ; 目的地址: 第0行第0列
    
-    rep movsb
+    rep movsd
 
     ; 清空第24行(最后一行)
     mov ecx, 80
-    mov ebx, 1920
+    mov ebx, 3840
 .clear_last_row:
     mov byte [gs:ebx], 0x00
     inc ebx
