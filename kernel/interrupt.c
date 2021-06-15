@@ -24,6 +24,8 @@ struct intr_gate_desc {
 
 static struct intr_gate_desc idt[INTR_NUM];
 extern intr_handler intr_entry_table[INTR_NUM];
+intr_handler intr_handler_table[INTR_NUM];
+char *intr_name[INTR_NUM];
 
 /* 初始化中断描述符表idt */
 static void idt_init() {
@@ -60,10 +62,49 @@ static void pic_init() {
     put_str("pic init done\n");
 }
 
+/* 通用中断处理函数 */
+void general_intr_handler(uint8_t vec_nr) {
+    if (vec_nr == 0x27 || vec_nr == 0x2f) {
+        return;
+    }
+    put_str("intr vector: 0x");
+    put_int_hex(vec_nr);
+    put_char('\n');
+}
+
+/* 初始化 完成通用中断处理函数注册及异常名称注册 */
+static void intr_handler_table_init() {
+    for (int i = 0; i < INTR_NUM; i++) {
+        intr_handler_table[i] = general_intr_handler; //初始化为通用中断处理函数
+        intr_name[i] = "unknown"; // 初始化为"unknown"
+    }
+    intr_name[0] = "#DE Divide Error";
+    intr_name[1] = "#DB Debug Exception";
+    intr_name[2] = "NMI Interrupt";
+    intr_name[3] = "#BP Breakpoint Exception";
+    intr_name[4] = "#OF Overflow Exception";
+    intr_name[5] = "#BR Bound Range Exceed Exception";
+    intr_name[6] = "#UD Invalid Opcode Exception";
+    intr_name[7] = "#NM Device Not Available Exception";
+    intr_name[8] = "#DF Double Fault Exception";
+    intr_name[9] = "Coprocessor Segment Overrun";
+    intr_name[10] = "#TS Invalid TSS Exception";
+    intr_name[11] = "#NP Segment Not Present";
+    intr_name[12] = "#SS Stack Fault Exception";
+    intr_name[13] = "#GP General Protection Exception";
+    intr_name[14] = "#PF Page-Fault Exception";
+    // intr_name[15] 第15项intel保留
+    intr_name[16] = "#MF x87 FPU Floating-Point Error";
+    intr_name[17] = "#AC Alignment Check Exception";
+    intr_name[18] = "#MC Machine-Check Exception";
+    intr_name[19] = "#XF SIMD Floating-Point Exception";
+}
+
 /* 中断有关初始化工作 */
 void intr_init() {
     idt_init();
     pic_init();
+    intr_handler_table_init();
     uint64_t idt_operand = (sizeof(idt) - 1) | ((uint64_t)(uint32_t)idt << 16);
     asm volatile("lidt %0" : : "m"(idt_operand));
 }

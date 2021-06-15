@@ -3,22 +3,39 @@
 %define ZERO        push 0
 
 extern put_str
+extern intr_handler_table
 
 section .data
-intr_msg db "interrupt occur!\n\0"
+intr_msg db "interrupt occur!", 0xa, 0
 
 %macro INTR_VECTOR 2 ; 写入中断向量
 section .text
 intr%1entry:
     %2
 
+    push ds
+    push es
+    push fs
+    push gs
+    pushad
+
     push intr_msg
     call put_str
+    add esp, 4
+
+    push %1
+    call [intr_handler_table + %1*4]
     add esp, 4
 
     mov al, 0x20
     out 0xa0, al
     out 0x20, al
+
+    popad
+    pop gs
+    pop fs
+    pop es
+    pop ds
 
     add esp, 4
     iret
