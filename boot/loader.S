@@ -352,7 +352,7 @@ kernel_init:
 
     mov ebx, [KERNEL_E_PHOFF_ADDR]      ; kernel.bin的e_phoff, 表示首个program header在文件中的偏移量
     add ebx, KERNEL_BIN_BASE_ADDR       ; 加上文件起始地址
-    mov edx, [KERNEL_E_PHENTSIZE_ADDR]  ; e_phentsize, 表示program header大小
+    mov dx, [KERNEL_E_PHENTSIZE_ADDR]  ; e_phentsize, 表示program header大小
     mov cx, [KERNEL_E_PHNUM_ADDR]      ; e_phnum, 表示program header的数量
 .each_segment:
     cmp byte [ebx], PT_NULL
