@@ -5,7 +5,7 @@ mbr.bin: boot/mbr.S
 loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
-OBJS = main.o init.o interrupt.o print.o kernel.o
+OBJS = main.o init.o timer.o interrupt.o print.o kernel.o
 
 kernel.bin: $(OBJS)
 	ld -Ttext 0xc0001500 -e main -o $@ $^
@@ -18,12 +18,14 @@ kernel.o: kernel/kernel.S
 
 # c
 CFLAGS += -std=c99
-INCLUDE = -I lib/kernel/ -I lib/ -I kernel/
+INCLUDE = -I lib/kernel/ -I lib/ -I kernel/ -I device/
 main.o: kernel/main.c
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 init.o: kernel/init.c
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 interrupt.o: kernel/interrupt.c 
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+timer.o: device/timer.c
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 
