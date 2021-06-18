@@ -12,6 +12,7 @@
 #define PIC_S_CTRL  0xa0    // 从片控制端口
 #define PIC_S_DATA  0xa1    // 从片数据端口
 
+#define EFLAGS_IF   0x200   // IF位在EFLAGS中的位置: 第9位
 
 struct intr_gate_desc {
     // 中断门描述符
@@ -98,6 +99,30 @@ static void intr_handler_table_init() {
     intr_name[17] = "#AC Alignment Check Exception";
     intr_name[18] = "#MC Machine-Check Exception";
     intr_name[19] = "#XF SIMD Floating-Point Exception";
+}
+
+enum intr_status intr_get_status() {
+    uint32_t eflags;
+    asm volatile("pushfl; popl %0" : "=g"(eflags));
+    return (eflags & EFLAGS_IF) ? INTR_ON : INTR_OFF;
+}
+
+enum intr_status intr_set_status(enum intr_status status) {
+    return status == INTR_ON ? intr_enable() : intr_disable();
+}
+
+enum intr_status intr_enable() {
+    if (intr_get_status() == INTR_ON)
+        return INTR_ON;
+    asm volatile("sti");
+    return INTR_OFF;
+}
+
+enum intr_status intr_disable() {
+    if (intr_get_status() == INTR_OFF)
+        return INTR_OFF;
+    asm volatile("cli" : : : "memory");
+    return INTR_ON;
 }
 
 /* 中断有关初始化工作 */
