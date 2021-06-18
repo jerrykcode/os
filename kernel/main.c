@@ -1,6 +1,7 @@
 #include "print.h"
 #include "init.h"
 #include "asm.h"
+#include "debug.h"
 
 int main() {
     put_char('h');
@@ -35,6 +36,7 @@ int main() {
 
     init_all();
     asm volatile("sti");
+    ASSERT(1==2);
     while (1) {}
     return (0);
 }
