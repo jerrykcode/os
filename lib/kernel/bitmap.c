@@ -8,7 +8,7 @@ void bitmap_init(struct bitmap *btmp, uint8_t init_val) {
     // 若每一位的初始值为1，则每一字节的初始值为0xff
     if (init_val)
         init_val = 0xff;
-    
+
     for (int i = 0; i < btmp->btmp_bytes_len; i++)
         btmp->bits[i] = init_val;
 }
@@ -43,7 +43,7 @@ int bitmap_alloc(struct bitmap *btmp, uint32_t num_bits, uint8_t bit_val) {
         uint8_t bit_idx = 0;
         // 以下for循环找出 cur_byte_idx字节 中首个 值为bit_val 的位
         for ( ; bit_idx < 8; bit_idx++) // 逐位判断
-            if ((btmp->bits[cur_byte_idx] >> (7 - bit_idx)) & 1 == bit_val)
+            if ( ((btmp->bits[cur_byte_idx] >> (7 - bit_idx)) & 1) == bit_val)
                 break;
         uint32_t cur_byte_bits = cur_byte_idx << 3; // 记录 0 ~ cur_byte_idx字节的总共位数(cur_byte_bits = cur_byte_idx * 8)
         result_idx = cur_byte_bits + bit_idx; // 赋值给result_idx
@@ -53,7 +53,7 @@ int bitmap_alloc(struct bitmap *btmp, uint32_t num_bits, uint8_t bit_val) {
             cur_byte_bits = cur_byte_idx << 3; //cur_byte_idx * 8
             // 逐位判断
             for ( ; bit_idx < 8; bit_idx++) {
-                if ((btmp->bits[cur_byte_idx] >> (7 - bit_idx)) & 1 == bit_val)
+                if ( ((btmp->bits[cur_byte_idx] >> (7 - bit_idx)) & 1) == bit_val)
                     bits_count++;
                 else {
                     // 若位的值不为bit_val, 则只能重新寻找

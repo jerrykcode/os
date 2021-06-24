@@ -23,7 +23,7 @@ struct virtual_addr {
 extern struct pool kernel_pool, user_pool;
 
 void mem_init();
-void *get_kernel_page(uint32_t pages_num);
+void *malloc_kernel_page(uint32_t pages_num);
 void *malloc_page(enum pool_flags pf, uint32_t pages_num);
 uint32_t *pte_ptr(uint32_t vaddr);
 uint32_t *pde_ptr(uint32_t vaddr);

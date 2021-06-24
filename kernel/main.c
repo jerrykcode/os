@@ -1,5 +1,6 @@
 #include "print.h"
 #include "init.h"
+#include "memory.h"
 #include "asm.h"
 #include "debug.h"
 
@@ -35,8 +36,17 @@ int main() {
     put_int_hex(0x00000000);
 
     init_all();
-    asm volatile("sti");
-    ASSERT(1==2);
+
+    // 测试malloc_kernel_page函数
+    for (int i = 0; i < 3; i++) {
+        void *addr = malloc_kernel_page(3);
+        put_str("\n malloc_kernel_page start vaddr: 0x");
+        put_int_hex((uint32_t)addr);
+        put_char('\n');
+    }
+    
+//    asm volatile("sti");
+//    ASSERT(1==2);
     while (1) {}
     return (0);
 }
