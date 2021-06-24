@@ -29,6 +29,8 @@ static void mem_pool_init(uint32_t all_mem) {
     uint32_t kernel_page_num = free_mem_page_num / 2;
     uint32_t user_page_num = free_mem_page_num - kernel_page_num;
 
+    put_str("       all_mem: 0x"); put_int_hex(all_mem); put_str("  free_mem: 0x"); put_int_hex(free_mem); put_char('\n');
+
     // kernel物理内存池
     uint32_t kernel_phy_addr_start = used_mem;
     kernel_pool.phy_addr_start = kernel_phy_addr_start;
@@ -37,6 +39,13 @@ static void mem_pool_init(uint32_t all_mem) {
     kernel_pool.pool_btmp.btmp_bytes_len = kernel_page_num / 8;
     kernel_pool.pool_btmp.bits = (void *)MEM_BITMAP_BASE;
     bitmap_init(&kernel_pool.pool_btmp, BTMP_MEM_FREE);
+    // 输出信息
+    put_str("       {\n");
+    put_str("           kernel_pool_bitmap_start: 0x"); put_int_hex((int)kernel_pool.pool_btmp.bits); put_char('\n');
+    put_str("           kernel_pool_bitmap_bytes_len: 0x"); put_int_hex((int)kernel_pool.pool_btmp.btmp_bytes_len); put_char('\n');
+    put_str("           kernel_pool_phy_addr_start: 0x"); put_int_hex((int)kernel_pool.phy_addr_start); put_char('\n');
+    put_str("           kernel_pool_size: 0x"); put_int_hex((int)kernel_pool.pool_size); put_char('\n');
+    put_str("       }\n");
 
     // user物理内存池, 紧跟在kernel物理内存池之后
     uint32_t user_phy_addr_start = kernel_phy_addr_start + kernel_page_num * PAGE_SIZE;
@@ -46,6 +55,13 @@ static void mem_pool_init(uint32_t all_mem) {
     user_pool.pool_btmp.btmp_bytes_len = user_page_num / 8;
     user_pool.pool_btmp.bits = kernel_pool.pool_btmp.bits + kernel_pool.pool_btmp.btmp_bytes_len;
     bitmap_init(&user_pool.pool_btmp, BTMP_MEM_FREE);
+    // 输出信息
+    put_str("       {\n");
+    put_str("           user_pool_bitmap_start: 0x"); put_int_hex((int)user_pool.pool_btmp.bits); put_char('\n');
+    put_str("           user_pool_bitmap_bytes_len: 0x"); put_int_hex((int)user_pool.pool_btmp.btmp_bytes_len); put_char('\n');
+    put_str("           user_pool_phy_addr_start: 0x"); put_int_hex((int)user_pool.phy_addr_start); put_char('\n');
+    put_str("           user_pool_size: 0x"); put_int_hex((int)user_pool.pool_size); put_char('\n');
+    put_str("       }\n");
 
     // kernel虚拟地址
     kernel_vaddr.vaddr_start = K_HEAP_START;
