@@ -8,6 +8,8 @@ enum pool_flags {
     PF_USER
 };
 
+#define PAGE_SIZE       4096
+
 #define PG_P_1  1
 #define PG_P_0  0
 #define PG_RW_R 0
@@ -15,8 +17,15 @@ enum pool_flags {
 #define PG_US_S 0
 #define PG_US_U 4
 
+// struct __bitmap 与 lib/kernel/bitmap.h 中的 struct bitmap 一样
+// 如果不定义 struct __bitmap 而使用 struct bitmap 编译通不过!!
+struct __bitmap {
+    uint32_t btmp_bytes_len;
+    uint8_t *bits;
+};
+
 struct virtual_addr {
-    struct bitmap vaddr_btmp;
+    struct __bitmap vaddr_btmp;
     uint32_t vaddr_start;
 };
 
