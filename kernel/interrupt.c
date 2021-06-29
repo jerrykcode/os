@@ -68,9 +68,20 @@ void general_intr_handler(uint8_t vec_nr) {
     if (vec_nr == 0x27 || vec_nr == 0x2f) {
         return;
     }
-    put_str("intr vector: 0x");
-    put_int_hex(vec_nr);
-    put_char('\n');
+    set_cursor(0);
+    for (int i = 0; i < 320; i++) // 清空屏幕上方4行
+        put_char(' ');
+    set_cursor(0);
+    put_str("!!!! excetion message begin !!!!\n");
+    put_str("       \n");
+    put_str(intr_name[vec_nr]);
+    if (vec_nr == 14) { // Page-fault
+        int page_fault_vaddr = 0;
+        asm volatile ("movl %%cr2, %0" : "=r" (page_fault_vaddr));
+        put_str("\npage fault addr is: 0x"); put_int_hex(page_fault_vaddr);
+    }
+    put_str("!!!! excetion message end !!!!\n");
+    while (1) {}
 }
 
 /* 初始化 完成通用中断处理函数注册及异常名称注册 */
@@ -132,4 +143,8 @@ void intr_init() {
     intr_handler_table_init();
     uint64_t idt_operand = (sizeof(idt) - 1) | ((uint64_t)(uint32_t)idt << 16);
     asm volatile("lidt %0" : : "m"(idt_operand));
+}
+
+void register_handler(uint8_t vec_no, intr_handler handler) {
+    intr_handler_table[vec_no] = handler;
 }

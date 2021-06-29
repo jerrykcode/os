@@ -235,3 +235,34 @@ put_int_hex:
     pop ecx
     pop ebx
     ret
+
+; ----------------------------------------------------
+; set_cursor函数
+; 功能 设置光标
+; ----------------------------------------------------
+global set_cursor
+set_cursor:
+    push eax
+    push ebx
+    push edx
+
+    mov ebx, [esp + 16]
+
+    mov dx, 0x3d4
+    mov al, 0x0e
+    out dx, al
+    mov dx, 0x3d5
+    mov al, bh
+    out dx, al
+
+    mov dx, 0x3d4
+    mov al, 0x0f
+    out dx, al
+    mov dx, 0x3d5
+    mov al, bl
+    out dx, al
+
+    pop edx
+    pop ebx
+    pop eax
+    ret

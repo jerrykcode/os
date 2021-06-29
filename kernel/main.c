@@ -2,7 +2,11 @@
 #include "init.h"
 #include "memory.h"
 #include "asm.h"
+#include "thread.h"
 #include "debug.h"
+
+void thread_1(void *);
+void thread_2(void *);
 
 int main() {
     put_char('h');
@@ -44,9 +48,30 @@ int main() {
         put_int_hex((uint32_t)addr);
         put_char('\n');
     }
-    
-//    asm volatile("sti");
-//    ASSERT(1==2);
-    while (1) {}
+
+    thread_start("thread_A", 31, thread_1, "arg A"); 
+    thread_start("thread_B", 31, thread_2, "arg B");
+    thread_start("thread_C", 31, thread_2, "arg C");
+
+
+    asm volatile("sti");
+    while (1) {
+        put_str("Main");
+        put_char(' ');
+    }
     return (0);
+}
+
+void thread_1(void *arg) {
+    char *str = arg;
+    while (1) {
+        put_str(str); put_char(' ');
+    }
+}
+
+void thread_2(void *arg) {
+    char *str = arg;
+    while (1) {
+        put_str(str); put_char(',');
+    }
 }

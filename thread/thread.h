@@ -44,6 +44,9 @@ struct intr_stack {
 
 // 此结构描述线程在TASK_READY状态时栈中的部分内容
 // 这些内容用于从其他线程切换到本线程
+//
+// 对于新线程，thread_stack中的内容由thread_stack_init函数赋值
+// 对于已执行的线程，thread_stack中的内容由call调用函数及push指令压入
 struct thread_stack {
     uint32_t ebp;
     uint32_t ebx;
@@ -51,15 +54,17 @@ struct thread_stack {
     uint32_t esi;
 
     // 对于新线程:
-    // ret_func[0] 新线程函数入口地址
-    // ret_func[1] 新线程函数的返回地址(无实用)
-    // ret_func[2] 新线程函数参数: void *类型
+    // ret_func[0] thread_func_entry函数地址
+    // ret_func[1] thread_func_entry返回地址(目前无实用)
+    // ret_func[2] thread_func_entry参数: 新线程函数地址
+    // ret_func[3] thread_func_entry参数: 新线程函数参数(void *)
     //
     // 对于已执行的线程:
     // ret_func[0] switch_to函数的返回地址，返回到schedule函数
-    // ret_func[1] schedule函数的返回地址，返回到timer函数
-    // ret_func[2] timer函数的返回地址，返回到中断entry函数
-    uint32_t ret_func[3];
+    // ret_func[1] switch_to的参数: cur(当前线程)
+    // ret_func[2] switch_to的参数: next(新线程)
+    // ret_func[3] 栈中的值，没有特别意义
+    uint32_t ret_func[4];
 };
 
 // 任务(线程或者进程)
