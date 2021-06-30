@@ -23,13 +23,14 @@ intr%1entry:
     call put_str
     add esp, 4
 
-    push %1
-    call [intr_handler_table + %1*4]
-    add esp, 4
-
+    ; 发送中断结束命令EOI
     mov al, 0x20
     out 0xa0, al
     out 0x20, al
+
+    push %1
+    call [intr_handler_table + %1*4]
+    add esp, 4
 
     popad
     pop gs
