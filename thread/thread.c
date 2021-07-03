@@ -4,6 +4,7 @@
 #include "asm.h"
 #include "string.h"
 #include "stddef.h"
+#include "stdbool.h"
 #include "bitmap.h"
 #include "memory.h"
 #include "debug.h"
@@ -18,7 +19,7 @@ struct list_st threads_ready;
 static void make_main_thread() {
     struct task_st *main_task = current_thread();
     task_init(main_task, "main", TASK_RUNNING, 31);
-    list_push(&threads_all, &main_task->thread_node);
+    list_push_back(&threads_all, &main_task->thread_node);
 }
 
 /* 初始化线程环境 */
@@ -50,8 +51,8 @@ void thread_start(char *name, uint32_t priority, thread_func func, void *args) {
     struct task_st *task = malloc_kernel_page(1); // 1页内存，从内核内存池申请
     task_init(task, name, TASK_READY, priority);
     thread_stack_init(task, func, args);
-    list_push(&threads_all, &task->thread_node);
-    list_push(&threads_ready, &task->thread_ready_node);
+    list_push_back(&threads_all, &task->thread_node);
+    list_push_back(&threads_ready, &task->thread_ready_node);
 }
 
 void thread_func_entry(thread_func func, void *args) {
@@ -92,15 +93,49 @@ void schedule() {
         // 运行态的线程时间片耗尽
         cur->ticks = cur->priority;
         cur->status = TASK_READY;
-        list_push(&threads_ready, &cur->thread_ready_node);
+        list_push_back(&threads_ready, &cur->thread_ready_node);
     }
     else {
         // 线程阻塞
     }
 
+    ASSERT(!list_empty(&threads_ready));
     list_node node = list_pop(&threads_ready);
-    struct task_st *next = (struct task_st *)((uint32_t)node & 0xfffff000);
+    struct task_st *next = node_to_thread(node);
     next->status = TASK_RUNNING;
 
     switch_to(cur, next);
 }
+
+/* 阻塞当前线程 */
+void thread_block(enum task_status status) {
+    ASSERT(status == TASK_BLOCKED || status == TASK_WAITING || status == TASK_HANGING);
+    if (status == TASK_BLOCKED || status == TASK_WAITING || status == TASK_HANGING) {
+        struct task_st *cur = current_thread();
+        enum intr_status old_intr_status = intr_disable(); //关闭中断
+        cur->status = status;
+        schedule(); // 在status不为TASK_RUNNING的情况下调用schedule(), 当前线程不会加入就绪队列中，以后中断无法调度到本线程，实现阻塞
+        intr_set_status(old_intr_status);        
+    }
+}
+
+/* 将线程解除阻塞 */
+void thread_unblock(struct task_st *pthread) {
+    enum task_status status = pthread->status;
+    ASSERT(status == TASK_BLOCKED || status == TASK_WAITING || status == TASK_HANGING);
+    if (status == TASK_BLOCKED || status == TASK_WAITING || status == TASK_HANGING) {
+        enum intr_status old_intr_status = intr_disable(); // 关闭中断
+        bool not_in_ready_list = ! list_exist(&threads_ready, &pthread->thread_ready_node);
+        ASSERT(not_in_ready_list);
+        if (not_in_ready_list) {
+            pthread->status = TASK_READY;
+            list_push_front(&threads_ready, &pthread->thread_ready_node); // 插入就绪队列头部，下次会调度到ta
+        }
+        intr_set_status(old_intr_status); // 恢复之前的中断状态
+    }
+}
+
+struct task_st *node_to_thread(list_node node) {
+    return (struct task_st *)((uint32_t)node & 0xfffff000);
+}
+

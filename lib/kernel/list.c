@@ -9,7 +9,7 @@ void list_init(struct list_st *list) {
     list->tail = NULL;
 }
 
-void list_push(struct list_st *list, list_node node) {
+void list_push_back(struct list_st *list, list_node node) {
     ASSERT(list != NULL);
     ASSERT(node != NULL);
 
@@ -24,6 +24,24 @@ void list_push(struct list_st *list, list_node node) {
         node->pre = list->tail;
         node->next = NULL;
         list->tail = node;        
+    }
+}
+
+void list_push_front(struct list_st *list, list_node node) {
+    ASSERT(list != NULL);
+    ASSERT(node != NULL);
+
+    if (list->head == NULL) {
+        ASSERT(list->tail == NULL);
+        list->head = list->tail = node;
+        node->pre = node->next = NULL;
+    }
+    else {
+        ASSERT(list->head && list->tail);
+        node->next = list->head;
+        node ->pre = NULL;
+        list->head->pre = node;
+        list->head = node;
     }
 }
 

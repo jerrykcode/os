@@ -5,7 +5,8 @@ mbr.bin: boot/mbr.S
 loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
-OBJS = main.o debug.o init.o timer.o interrupt.o thread.o memory.o bitmap.o string.o list.o print.o kernel.o switch.o
+OBJS = main.o debug.o init.o timer.o interrupt.o thread.o memory.o \
+	console.o sync.o bitmap.o string.o list.o print.o kernel.o switch.o
 
 kernel.bin: $(OBJS)
 	ld -Ttext 0xc0001500 -e main -o $@ $^
@@ -43,6 +44,11 @@ list.o: lib/kernel/list.c lib/kernel/list.h lib/stdbool.h lib/stddef.h kernel/de
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 thread.o: thread/thread.c thread/thread.h lib/kernel/list.h lib/kernel/print.h \
 	lib/kernel/asm.h lib/kernel/bitmap.h lib/stddef.h lib/string.h kernel/memory.h kernel/interrupt.h kernel/debug.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+sync.o: thread/sync.c thread/sync.h thread/thread.h lib/stdint.h lib/stddef.h lib/kernel/list.h \
+	kernel/interrupt.h kernel/debug.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+console.o: device/console.c device/console.h lib/stdint.h lib/kernel/print.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 

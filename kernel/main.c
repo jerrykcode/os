@@ -4,6 +4,7 @@
 #include "asm.h"
 #include "thread.h"
 #include "debug.h"
+#include "console.h"
 
 void thread_1(void *);
 void thread_2(void *);
@@ -49,15 +50,14 @@ int main() {
         put_char('\n');
     }
 
-    thread_start("thread_A", 31, thread_1, "arg A"); 
-    thread_start("thread_B", 31, thread_2, "arg B");
-    thread_start("thread_C", 31, thread_2, "arg C");
+    thread_start("thread_A", 31, thread_1, "arg A "); 
+    thread_start("thread_B", 31, thread_2, "arg B ");
+    thread_start("thread_C", 31, thread_2, "arg C ");
 
 
     asm volatile("sti");
     while (1) {
-        put_str("Main");
-        put_char(' ');
+        console_put_str("Main ");
     }
     return (0);
 }
@@ -65,13 +65,13 @@ int main() {
 void thread_1(void *arg) {
     char *str = arg;
     while (1) {
-        put_str(str); put_char(' ');
+        console_put_str(str);
     }
 }
 
 void thread_2(void *arg) {
     char *str = arg;
     while (1) {
-        put_str(str); put_char(',');
+        console_put_str(str);
     }
 }

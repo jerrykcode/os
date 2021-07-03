@@ -10,5 +10,6 @@ void init_all() {
     timer_init();
     mem_init();
     thread_environment_init();
+    console_init();
     put_str("all init done\n");
 }
