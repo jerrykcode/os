@@ -57,7 +57,7 @@ int main() {
 
     asm volatile("sti");
     while (1) {
-        console_put_str("Main ");
+        //console_put_str("Main ");
     }
     return (0);
 }
@@ -65,13 +65,19 @@ int main() {
 void thread_1(void *arg) {
     char *str = arg;
     while (1) {
-        console_put_str(str);
+        int x = 7;
+        int y = x >> 1;
+        x -= y;
+        //console_put_str(str);
     }
 }
 
 void thread_2(void *arg) {
     char *str = arg;
     while (1) {
-        console_put_str(str);
+        int i = 3;
+        int j= i << 2 | 1;
+        i *= j;
+        //console_put_str(str);
     }
 }

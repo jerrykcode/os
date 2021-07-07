@@ -5,7 +5,7 @@
 #include "io.h"
 #include "asm.h"
 
-#define INTR_NUM    0x21    // 目前总共支持的中断数
+#define INTR_NUM    0x30    // 目前总共支持的中断数
 
 #define PIC_M_CTRL  0x20    // 8259A 主片的控制端口是0x20
 #define PIC_M_DATA  0x21    // 主片数据端口
@@ -55,9 +55,8 @@ static void pic_init() {
     outb(PIC_S_DATA, 0x02); // ICW3 b00000010   连接在主片的IR2引脚上
     outb(PIC_S_DATA, 0x01); // ICW4 b00000001   同主片ICW4
 
-    // 屏蔽除主片IR0外的所有中断
-    // 即只响应时钟中断
-    outb(PIC_M_DATA, 0xfe);
+    // 打开时钟中断与键盘中断
+    outb(PIC_M_DATA, 0xfc);
     outb(PIC_S_DATA, 0xff);
 
     put_str("pic init done\n");

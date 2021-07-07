@@ -84,7 +84,7 @@ void thread_stack_init(struct task_st *task, thread_func func, void *args) {
 
 void schedule() {
 
-    put_str("\n##############################################\n\n SCHEDULE!!!! \n\n#####################################################\n");
+//    put_str("\n##############################################\n\n SCHEDULE!!!! \n\n#####################################################\n");
 
     ASSERT(intr_get_status() == INTR_OFF);
 
