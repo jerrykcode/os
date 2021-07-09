@@ -52,7 +52,8 @@ sync.o: thread/sync.c thread/sync.h thread/thread.h lib/stdint.h lib/stddef.h li
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 console.o: device/console.c device/console.h lib/stdint.h lib/kernel/print.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
-keyboard.o: device/keyboard.c device/keyboard.h kernel/interrupt.h kernel/global.h lib/kernel/print.h lib/kernel/io.h
+keyboard.o: device/keyboard.c device/keyboard.h kernel/interrupt.h kernel/global.h lib/kernel/print.h lib/kernel/io.h \
+	lib/stdbool.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 
