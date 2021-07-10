@@ -2,5 +2,6 @@
 #define KEYBOARD_H__
 
 void keyboard_init();
+extern struct ioqueue_st ioqueue;
 
 #endif

@@ -1,4 +1,5 @@
 #include "keyboard.h"
+#include "ioqueue.h"
 #include "print.h"
 #include "interrupt.h"
 #include "io.h"
@@ -27,6 +28,8 @@
 
 #define caps_lock_make  0x3a
 #define caps_lock_break 0xba
+
+struct ioqueue_st ioqueue;
 
 static bool ctrl_down, shift_down, alt_down, caps_lock_on;
 static bool ext_scancode;
@@ -201,11 +204,13 @@ static void intr_keyboard_handler() {
 
     char ch = shift_table[scancode & 0xff][shift_act];
     put_char(ch);
+    ioqueue_putchar(&ioqueue, ch);
 }
 
 void keyboard_init() {
     put_str("keyboard_init start\n");
     status_init();
+    ioqueue_init(&ioqueue);
     register_handler(0x21, intr_keyboard_handler);
     put_str("keyboard_int finished\n");
 }

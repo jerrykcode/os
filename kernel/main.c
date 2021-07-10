@@ -5,6 +5,7 @@
 #include "thread.h"
 #include "debug.h"
 #include "console.h"
+#include "keyboard.h"
 
 void thread_1(void *);
 void thread_2(void *);
@@ -50,9 +51,9 @@ int main() {
         put_char('\n');
     }
 
-    thread_start("thread_A", 31, thread_1, "arg A "); 
-    thread_start("thread_B", 31, thread_2, "arg B ");
-    thread_start("thread_C", 31, thread_2, "arg C ");
+    thread_start("thread_A", 31, thread_1, " arg A "); 
+    thread_start("thread_B", 31, thread_2, " arg B ");
+    thread_start("thread_C", 31, thread_2, " arg C ");
 
 
     asm volatile("sti");
@@ -65,19 +66,19 @@ int main() {
 void thread_1(void *arg) {
     char *str = arg;
     while (1) {
-        int x = 7;
-        int y = x >> 1;
-        x -= y;
-        //console_put_str(str);
+        console_put_str(str);
+        char ch = ioqueue_getchar(&ioqueue);
+        console_put_char(ch);
+        for (int i = 0; i < 100000; i++) ;
     }
 }
 
 void thread_2(void *arg) {
     char *str = arg;
     while (1) {
-        int i = 3;
-        int j= i << 2 | 1;
-        i *= j;
-        //console_put_str(str);
+        console_put_str(str);
+        char ch = ioqueue_getchar(&ioqueue);
+        console_put_char(ch);
+        for (int i = 0; i < 100000; i++) ;
     }
 }
