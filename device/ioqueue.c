@@ -4,16 +4,16 @@
 #include "stdbool.h"
 #include "sync.h"
 #include "thread.h"
+#include "list.h"
 #include "interrupt.h"
 #include "debug.h"
 
 void ioqueue_init(struct ioqueue_st *ioqueue) {
     ioqueue->head = 0;
     ioqueue->tail = 0;
-    lock_init(&ioqueue->producer_lock);
-    lock_init(&ioqueue->consumer_lock);
-    ioqueue->producer = NULL;
-    ioqueue->consumer = NULL;
+    lock_init(&ioqueue->lock);
+    list_init(&ioqueue->waiting_producer);
+    list_init(&ioqueue->waiting_consumer);
 }
 
 static uint8_t next_pos(uint8_t pos) {
@@ -21,65 +21,70 @@ static uint8_t next_pos(uint8_t pos) {
 }
 
 static bool ioqueue_empty(struct ioqueue_st *ioqueue) {
-    return ioqueue->tail == ioqueue->head;
+    return ioqueue->head == ioqueue->tail;
 }
 
 static bool ioqueue_full(struct ioqueue_st *ioqueue) {
-    return next_pos(ioqueue->head) == ioqueue->tail;
+    return next_pos(ioqueue->tail) == ioqueue->head;
 }
 
+// 生产者
 void ioqueue_putchar(struct ioqueue_st *ioqueue, char c) {
-    // 获取生产者锁，以下代码段在任意时刻最多只有一个生产者线程在执行
-    lock_acquire(&ioqueue->producer_lock);
+    // 获取锁
+    lock_acquire(&ioqueue->lock);
 
-    enum intr_status old_status = intr_disable(); //关中断
+    // 判断是否有空位
     while (ioqueue_full(ioqueue)) {
-        // 判断queue满 与阻塞当前线程 组成原子操作
-        // 不存在阻塞的时候已经有消费者消费导致queue有空位的情况        
-        ioqueue->producer = current_thread();
+        // 释放锁并阻塞
+        
+        list_push_back(&ioqueue->waiting_producer, &(current_thread()->thread_node)); // 记录在链表上
+
+        // 释放锁和阻塞需要原子操作
+        enum intr_status old_status = intr_disable();
+        lock_release(&ioqueue->lock);
         thread_block(TASK_BLOCKED);
-    }
-    intr_set_status(old_status); // 恢复中断
+        intr_set_status(old_status);
 
-    // 生产者生产
-    ioqueue->head = next_pos(ioqueue->head);
-    ioqueue->queue[ioqueue->head] = c;
-
-    // 若有消费者线程阻塞等待queue中的数据，则唤醒该消费者
-    if (ioqueue->consumer != NULL) {
-        struct task_st *blocked_consumer = ioqueue->consumer;
-        ioqueue->consumer = NULL;
-        ASSERT(blocked_consumer->status == TASK_BLOCKED);
-        thread_unblock(blocked_consumer);
+        // 重新获取锁
+        lock_acquire(&ioqueue->lock);
     }
+
+    // 到这里已经有空位了, 生产者开始生产
+
+    ioqueue->tail = next_pos(ioqueue->tail);
+    ioqueue->queue[ioqueue->tail] = c;
+
+    if (! list_empty(&ioqueue->waiting_consumer)) // 有阻塞等待数据的消费者 则唤醒
+        thread_unblock(node_to_thread(list_pop(&ioqueue->waiting_consumer)));
 
     // 解锁
-    lock_release(&ioqueue->producer_lock);
+    lock_release(&ioqueue->lock);
 }
 
 // 消费者，与生产者类似
 char ioqueue_getchar(struct ioqueue_st *ioqueue) {
+    lock_acquire(&ioqueue->lock);
 
-    lock_acquire(&ioqueue->consumer_lock);
-
-    enum intr_status old_status = intr_disable();
     while (ioqueue_empty(ioqueue)) {
-        ioqueue->consumer = current_thread();
+        list_push_back(&ioqueue->waiting_consumer, &(current_thread()->thread_node));
+
+        enum intr_status old_status = intr_disable();
+        lock_release(&ioqueue->lock);
         thread_block(TASK_BLOCKED);
-    }
-    intr_set_status(old_status);
+        intr_set_status(old_status);
 
-    ioqueue->tail = next_pos(ioqueue->tail);
-    char result = ioqueue->queue[ioqueue->tail];
-
-    if (ioqueue->producer != NULL) {
-        struct task_st *blocked_producer = ioqueue->producer;
-        ioqueue->producer = NULL;
-        ASSERT(blocked_producer->status == TASK_BLOCKED);
-        thread_unblock(blocked_producer);
+        lock_acquire(&ioqueue->lock);
     }
 
-    lock_release(&ioqueue->consumer_lock);
+    // 消费
 
-    return result;
+    ioqueue->head = next_pos(ioqueue->head);
+    char c = ioqueue->queue[ioqueue->head];
+
+    if (! list_empty(&ioqueue->waiting_producer))
+        thread_unblock(node_to_thread(list_pop(&ioqueue->waiting_producer)));
+
+    lock_release(&ioqueue->lock);
+
+    return c;
 }

@@ -4,14 +4,16 @@
 #include "stdint.h"
 #include "thread.h"
 #include "sync.h"
+#include "list.h"
 
 #define IOQUEUE_SIZE    32
 
 struct ioqueue_st {
     char queue[IOQUEUE_SIZE];
     uint8_t head, tail;
-    struct lock_st producer_lock, consumer_lock;
-    struct task_st *producer, *consumer;
+    struct lock_st lock;
+    struct list_st waiting_producer;
+    struct list_st waiting_consumer;
 };
 
 void ioqueue_init(struct ioqueue_st *ioqueue);

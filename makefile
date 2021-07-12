@@ -56,7 +56,8 @@ console.o: device/console.c device/console.h lib/stdint.h lib/kernel/print.h
 keyboard.o: device/keyboard.c device/keyboard.h kernel/interrupt.h kernel/global.h lib/kernel/print.h lib/kernel/io.h \
 	lib/stdbool.h device/ioqueue.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
-ioqueue.o: device/ioqueue.c device/ioqueue.h lib/stdint.h lib/stddef.h lib/stdbool.h thread/sync.h thread/thread.h kernel/interrupt.h
+ioqueue.o: device/ioqueue.c device/ioqueue.h lib/stdint.h lib/stddef.h lib/stdbool.h thread/sync.h thread/thread.h \
+	kernel/interrupt.h lib/kernel/list.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 tss.o: usrprog/tss.c usrprog/tss.h kernel/memory.h kernel/global.h lib/stdint.h lib/kernel/print.h lib/kernel/asm.h thread/thread.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
