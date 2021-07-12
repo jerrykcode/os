@@ -6,8 +6,8 @@ loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
 OBJS = main.o debug.o init.o timer.o interrupt.o thread.o memory.o \
-	console.o keyboard.o ioqueue.o sync.o bitmap.o string.o list.o \
-	print.o kernel.o switch.o
+	console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o \
+	list.o print.o kernel.o switch.o
 
 kernel.bin: $(OBJS)
 	ld -Ttext 0xc0001500 -e main -o $@ $^
@@ -22,12 +22,12 @@ switch.o: thread/switch.S
 
 # c
 CFLAGS += -std=c99
-INCLUDE = -I lib/kernel/ -I lib/ -I kernel/ -I device/ -I thread/
+INCLUDE = -I lib/kernel/ -I lib/ -I kernel/ -I device/ -I thread/ -I usrprog/
 main.o: kernel/main.c lib/kernel/print.h kernel/init.h kernel/memory.h lib/kernel/asm.h thread/thread.h kernel/debug.h \
 	device/keyboard.h device/ioqueue.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 init.o: kernel/init.c kernel/init.h kernel/memory.h kernel/interrupt.h device/timer.h lib/kernel/print.h \
-	device/console.h device/keyboard.h 
+	device/console.h device/keyboard.h usrprog/tss.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 interrupt.o: kernel/interrupt.c kernel/interrupt.h kernel/global.h \
 	lib/stdint.h lib/kernel/print.h  lib/kernel/io.h lib/kernel/asm.h
@@ -57,6 +57,8 @@ keyboard.o: device/keyboard.c device/keyboard.h kernel/interrupt.h kernel/global
 	lib/stdbool.h device/ioqueue.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 ioqueue.o: device/ioqueue.c device/ioqueue.h lib/stdint.h lib/stddef.h lib/stdbool.h thread/sync.h thread/thread.h kernel/interrupt.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+tss.o: usrprog/tss.c usrprog/tss.h kernel/memory.h kernel/global.h lib/stdint.h lib/kernel/print.h lib/kernel/asm.h thread/thread.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 
