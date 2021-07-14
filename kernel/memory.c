@@ -3,6 +3,7 @@
 #include "string.h"
 #include "stddef.h"
 #include "debug.h"
+#include "thread.h"
 
 #define MEM_BITMAP_BASE 0xc009a000
 
@@ -83,6 +84,7 @@ void mem_init() {
 static void *vaddr_alloc(enum pool_flags pf, uint32_t page_num) {
     uint32_t vaddr_start = 0;
     if (pf == PF_KERNEL) {
+        // 内核线程申请内存
         // 通过位图查询空闲页
         int bit_idx = bitmap_alloc(&kernel_vaddr.vaddr_btmp, page_num, BTMP_MEM_FREE);
         if (bit_idx == -1)
@@ -91,10 +93,17 @@ static void *vaddr_alloc(enum pool_flags pf, uint32_t page_num) {
             // 更新位图
             bitmap_setbit(&kernel_vaddr.vaddr_btmp, bit_idx + i, BTMP_MEM_USED);
         }
-        vaddr_start =  kernel_vaddr.vaddr_start + bit_idx * PAGE_SIZE;
+        vaddr_start = kernel_vaddr.vaddr_start + bit_idx * PAGE_SIZE;
     }
     else {
-        //
+        // 用户进程申请内存
+        struct task_st *cur = current_thread();
+        int bit_idx = bitmap_alloc(&cur->usrprog_vaddr.vaddr_btmp, page_num, BTMP_MEM_FREE);
+        if (bit_idx == -1)
+            return NULL;
+        for (uint32_t i = 0; i < page_num; i++)
+            bitmap_setbit(&cur->usrprog_vaddr.vaddr_btmp, bit_idx + i, BTMP_MEM_USED);
+        vaddr_start = cur->usrprog_vaddr.vaddr_start + bit_idx * PAGE_SIZE;
     }
     return (void *)vaddr_start;
 }
