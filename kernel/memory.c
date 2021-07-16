@@ -1,18 +1,18 @@
 #include "memory.h"
+#include "sync.h"
 #include "print.h"
 #include "string.h"
 #include "stddef.h"
 #include "debug.h"
 #include "thread.h"
+#include "bitmap.h"
 
 #define MEM_BITMAP_BASE 0xc009a000
 
 #define K_HEAP_START    0xc0100000
 
-#define BTMP_MEM_FREE   0
-#define BTMP_MEM_USED   1
-
 struct pool {
+    struct lock_st lock;
     struct bitmap pool_btmp;
     uint32_t phy_addr_start;
     uint32_t pool_size;
@@ -30,6 +30,10 @@ static void mem_pool_init(uint32_t all_mem) {
     uint32_t user_page_num = free_mem_page_num - kernel_page_num;
 
     put_str("       all_mem: 0x"); put_int_hex(all_mem); put_str("  free_mem: 0x"); put_int_hex(free_mem); put_char('\n');
+
+    // 初始化锁
+    lock_init(&kernel_pool.lock);
+    lock_init(&user_pool.lock);
 
     // kernel物理内存池
     uint32_t kernel_phy_addr_start = used_mem;
@@ -146,7 +150,19 @@ static void vaddr_page_map(void *vaddr, void *page_phyaddr) {
 }
 
 void *malloc_kernel_page(uint32_t pages_num) {
+    lock_acquire(&kernel_pool.lock);
     void *vaddr = malloc_page(PF_KERNEL, pages_num);
+    lock_release(&kernel_pool.lock);
+    if (vaddr != NULL) {
+        memset(vaddr, 0, pages_num * PAGE_SIZE);
+    }
+    return vaddr;
+}
+
+void *malloc_user_page(uint32_t pages_num) {
+    lock_acquire(&user_pool.lock);
+    void *vaddr = malloc_page(PF_USER,pages_num);    
+    lock_release(&user_pool.lock);
     if (vaddr != NULL) {
         memset(vaddr, 0, pages_num * PAGE_SIZE);
     }
@@ -175,6 +191,43 @@ void *malloc_page(enum pool_flags pf, uint32_t pages_num) {
     return vaddr_start;
 }
 
+/* 申请一页物理内存，并将其虚拟地址映射为vaddr
+   返回 (void *)vaddr
+   本函数需要调用者确保vaddr没有被使用 */
+void *malloc_page_with_vaddr(enum pool_flags pf, uint32_t vaddr) {
+    struct pool *m_pool = (pf == PF_KERNEL ? &kernel_pool : &user_pool);
+
+    lock_acquire(&m_pool->lock);
+
+    void *page_phyaddr = palloc(m_pool); // 申请一页物理内存
+    if (page_phyaddr == NULL) {
+        vaddr = NULL;
+    }
+    else {
+        // 获取虚拟地址位图 以及 vaddr在位图中对应的位
+        struct bitmap *m_btmp;
+        uint32_t bit_idx;
+        if (pf == PF_KERNEL) {
+            m_btmp = (struct bitmap *)&kernel_vaddr.vaddr_btmp;
+            bit_idx = (vaddr - kernel_vaddr.vaddr_start) / PAGE_SIZE;
+        }
+        else {
+            struct virtual_addr *m_usrprog_vaddr = &current_thread()->usrprog_vaddr;
+            m_btmp = (struct bitmap *)&m_usrprog_vaddr->vaddr_btmp;
+            bit_idx = (vaddr - m_usrprog_vaddr->vaddr_start) / PAGE_SIZE;
+        }
+        // 将虚拟地址位图中 vaddr 对应的位置1
+        bitmap_setbit(m_btmp, bit_idx, BTMP_MEM_USED);
+
+        // 添加物理地址与虚拟地址的映射
+        vaddr_page_map((void *)vaddr, page_phyaddr);
+    }
+
+    lock_release(&m_pool->lock);
+
+    return (void *)vaddr;
+}
+
 /* 返回虚拟地址对应的物理地址所在页的页表项的地址 */
 uint32_t *pte_ptr(uint32_t vaddr) {
     uint32_t pte = 0xffc00000; // 高10位置1，表示第1023个页目录项，指向页目录本身
@@ -189,4 +242,10 @@ uint32_t *pde_ptr(uint32_t vaddr) {
     pde |= vaddr >> 20; // [20, 30)位存储vaddr高10位的值
     pde &= 0xfffffffc;  // [30, 32)位置0
     return (uint32_t *)pde;
+}
+
+/* 返回虚拟地址对应的物理地址 */
+uint32_t vaddr2phy(uint32_t vaddr) {
+    uint32_t *pte = pte_ptr(vaddr);
+    return ((*pte) & 0xfffff000) + (vaddr & 0x00000fff);
 }

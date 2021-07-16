@@ -5,9 +5,9 @@ mbr.bin: boot/mbr.S
 loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
-OBJS = main.o debug.o init.o timer.o interrupt.o thread.o memory.o \
-	console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o \
-	list.o print.o kernel.o switch.o
+OBJS = main.o debug.o init.o timer.o interrupt.o thread.o process.o memory.o \
+	console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o list.o \
+	print.o kernel.o switch.o
 
 kernel.bin: $(OBJS)
 	ld -Ttext 0xc0001500 -e main -o $@ $^
@@ -24,7 +24,7 @@ switch.o: thread/switch.S
 CFLAGS += -std=c99
 INCLUDE = -I lib/kernel/ -I lib/ -I kernel/ -I device/ -I thread/ -I usrprog/
 main.o: kernel/main.c lib/kernel/print.h kernel/init.h kernel/memory.h lib/kernel/asm.h thread/thread.h kernel/debug.h \
-	device/keyboard.h device/ioqueue.h
+	device/keyboard.h device/ioqueue.h usrprog/process.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 init.o: kernel/init.c kernel/init.h kernel/memory.h kernel/interrupt.h device/timer.h lib/kernel/print.h \
 	device/console.h device/keyboard.h usrprog/tss.h
@@ -45,7 +45,7 @@ string.o: lib/string.c lib/string.h lib/stdint.h lib/stddef.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 list.o: lib/kernel/list.c lib/kernel/list.h lib/stdbool.h lib/stddef.h kernel/debug.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
-thread.o: thread/thread.c thread/thread.h lib/kernel/list.h lib/kernel/print.h \
+thread.o: thread/thread.c thread/thread.h lib/kernel/list.h lib/kernel/print.h usrprog/process.h \
 	lib/kernel/asm.h lib/kernel/bitmap.h lib/stddef.h lib/string.h kernel/memory.h kernel/interrupt.h kernel/debug.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 sync.o: thread/sync.c thread/sync.h thread/thread.h lib/stdint.h lib/stddef.h lib/kernel/list.h \
@@ -60,6 +60,9 @@ ioqueue.o: device/ioqueue.c device/ioqueue.h lib/stdint.h lib/stddef.h lib/stdbo
 	kernel/interrupt.h lib/kernel/list.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 tss.o: usrprog/tss.c usrprog/tss.h kernel/memory.h kernel/global.h lib/stdint.h lib/kernel/print.h lib/kernel/asm.h thread/thread.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+process.o: usrprog/process.c usrprog/process.h kernel/memory.h kernel/global.h lib/stdint.h lib/kernel/asm.h thread/thread.h \
+	lib/kernel/list.h kernel/interrupt.h kernel/debug.h lib/kernel/bitmap.h lib/stddef.h lib/string.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 

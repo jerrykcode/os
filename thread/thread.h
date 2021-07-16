@@ -8,6 +8,9 @@ typedef void (*thread_func)(void *);
 
 #define STACK_MAGIC 0x20010201
 
+struct list_st threads_all;
+struct list_st threads_ready;
+
 enum task_status {
     TASK_RUNNING,
     TASK_READY,
@@ -33,7 +36,7 @@ struct intr_stack {
     uint32_t gs;
     uint32_t fs;
     uint32_t es;
-    uint32_t ed;
+    uint32_t ds;
 
     uint32_t error_code;
     void (*eip)(void);

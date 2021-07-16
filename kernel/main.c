@@ -6,9 +6,14 @@
 #include "debug.h"
 #include "console.h"
 #include "keyboard.h"
+#include "process.h"
+
+int value;
 
 void thread_1(void *);
 void thread_2(void *);
+void usrprog_1(void);
+ void usrprog_2(void) ;
 
 int main() {
     put_char('h');
@@ -51,10 +56,14 @@ int main() {
         put_char('\n');
     }
 
+    value = 0;
+
     thread_start("thread_A", 31, thread_1, " arg A "); 
     thread_start("thread_B", 31, thread_2, " arg B ");
     thread_start("thread_C", 31, thread_2, " arg C ");
 
+    process_execute(usrprog_1, "usr1");
+    process_execute(usrprog_2, "usr2");
 
     asm volatile("sti");
     while (1) {
@@ -77,8 +86,18 @@ void thread_2(void *arg) {
     char *str = arg;
     while (1) {
         console_put_str(str);
-        char ch = ioqueue_getchar(&ioqueue);
-        console_put_char(ch);
-        for (int i = 0; i < 100000; i++) ;
+        console_put_int_hex(value);
+    }
+}
+
+void usrprog_1() {
+    while (1) {
+        value++;
+    }
+}
+
+void usrprog_2() {
+    while (1) {
+        value++;
     }
 }

@@ -29,12 +29,18 @@ struct virtual_addr {
     uint32_t vaddr_start;
 };
 
+#define BTMP_MEM_FREE   0
+#define BTMP_MEM_USED   1
+
 extern struct pool kernel_pool, user_pool;
 
 void mem_init();
 void *malloc_kernel_page(uint32_t pages_num);
+void *malloc_user_page(uint32_t pages_num);
 void *malloc_page(enum pool_flags pf, uint32_t pages_num);
+void *malloc_page_with_vaddr(enum pool_flags pf, uint32_t vaddr);
 uint32_t *pte_ptr(uint32_t vaddr);
 uint32_t *pde_ptr(uint32_t vaddr);
+uint32_t vaddr2phy(uint32_t vaddr);
 
 #endif

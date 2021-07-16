@@ -9,11 +9,9 @@
 #include "memory.h"
 #include "debug.h"
 #include "interrupt.h"
+#include "process.h"
 
 extern void switch_to(struct task_st *cur, struct task_st *next);
-
-struct list_st threads_all;
-struct list_st threads_ready;
 
 /* 将kernel中的main函数完善成为主线程 */
 static void make_main_thread() {
@@ -103,6 +101,8 @@ void schedule() {
     list_node node = list_pop(&threads_ready);
     struct task_st *next = node_to_thread(node);
     next->status = TASK_RUNNING;
+
+    process_active(next); // 更新cr3为next的页表物理地址。并在next为用户进程时更新TSS中的esp0
 
     switch_to(cur, next);
 }

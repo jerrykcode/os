@@ -94,3 +94,16 @@ INTR_VECTOR 0x2c, ZERO	;ps/2鼠标
 INTR_VECTOR 0x2d, ZERO	;fpu浮点单元异常
 INTR_VECTOR 0x2e, ZERO	;硬盘
 INTR_VECTOR 0x2f, ZERO	;保留
+
+; 单独的退出中断函数
+section .text
+global intr_exit
+intr_exit:
+    add esp, 4
+    popad
+    pop gs
+    pop fs
+    pop es
+    pop ds
+    add esp, 4
+    iret
