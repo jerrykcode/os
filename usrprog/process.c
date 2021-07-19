@@ -96,7 +96,6 @@ static void start_process(void *filename) {
     // 在当前线程栈顶制作一个struct intr_stack结构，制造出用户进程中断的假象
     // 最后通过 "jmp intr_exit" 退出中断 执行到用户进程代码
     cur->self_stack = (uint32_t *)((uint32_t)cur + PAGE_SIZE - sizeof(struct intr_stack));
-    asm volatile ("movl %0, %%esp" : : "g"(cur->self_stack) : "memory"); // esp移至 cur->self_stack
     struct intr_stack *intr_stack = (struct intr_stack *)cur->self_stack;    
     // 为中断栈填充值
     intr_stack->ss = SELECTOR_U_DATA; // 用户数据段

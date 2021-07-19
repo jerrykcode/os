@@ -59,8 +59,18 @@ void thread_func_entry(thread_func func, void *args) {
 }
 
 void thread_stack_init(struct task_st *task, thread_func func, void *args) {
-    struct thread_stack *stack = (struct thread_stack *)((uint32_t)task + PAGE_SIZE - sizeof(struct thread_stack));
+    struct thread_stack *stack;
+
+    if (task->page_table == NULL) {
+        // 线程
+        stack = (struct thread_stack *)((uint32_t)task + PAGE_SIZE - sizeof(struct thread_stack));
                                                     // task起始地址 + 页大小 - thread_stack结构大小
+    }
+    else {
+        // 用户进程
+        stack = (struct thread_stack *)((uint32_t)task + PAGE_SIZE 
+            - sizeof(struct intr_stack) - sizeof(struct thread_stack)); // 预留intr_stack的空间
+    }
 
     task->self_stack = (uint32_t *)stack;
 
