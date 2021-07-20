@@ -107,3 +107,32 @@ intr_exit:
     pop ds
     add esp, 4
     iret
+
+; 0x80中断
+; 系统调用
+extern syscall_table
+global syscall_handler
+syscall_handler:
+    ZERO                ; 压入0，统一格式
+    push ds
+    push es
+    push fs
+    push gs
+    pushad
+    push 0x80           ; 压入中断号
+
+    ; 压入系统调用参数
+    push edx
+    push ecx
+    push ebx
+    ; 调用系统调用函数
+    ; eax存储了系统调用序号
+    call [syscall_table + eax * 4]
+
+    add esp, 12
+    ; eax存储的是系统调用的返回值
+    ; 将eax的值存储在栈中之前push eax的位置
+    ; 这样之后pop出eax时，就使得eax的值是系统调用的返回值
+    mov [esp + 4 + 7*4], eax
+
+    jmp intr_exit

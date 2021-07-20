@@ -4,6 +4,8 @@
 #include "list.h"
 #include "memory.h"
 
+typedef uint16_t pid_t;
+
 typedef void (*thread_func)(void *);
 
 #define STACK_MAGIC 0x20010201
@@ -74,6 +76,7 @@ struct thread_stack {
 // 任务(线程或者进程)
 struct task_st {
     uint32_t *self_stack; // 栈指针
+    pid_t pid; // 任务id
     char name[20]; // 任务名
     enum task_status status; // 状态
     uint32_t ticks; // 剩余时间片

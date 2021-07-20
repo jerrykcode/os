@@ -1,4 +1,5 @@
 #include "thread.h"
+#include "sync.h"
 #include "list.h"
 #include "print.h"
 #include "asm.h"
@@ -11,7 +12,19 @@
 #include "interrupt.h"
 #include "process.h"
 
+struct lock_st pid_lock;
+
 extern void switch_to(struct task_st *cur, struct task_st *next);
+
+/* 分配pid */
+static pid_t alloc_pid() {
+    static pid_t pid = 0;
+    pid_t this_pid;
+    lock_acquire(&pid_lock);
+    this_pid = pid++;
+    lock_release(&pid_lock);
+    return this_pid;
+}
 
 /* 将kernel中的main函数完善成为主线程 */
 static void make_main_thread() {
@@ -23,6 +36,7 @@ static void make_main_thread() {
 /* 初始化线程环境 */
 void thread_environment_init() {
     put_str("thread_environment_init start\n");
+    lock_init(&pid_lock);
     list_init(&threads_all);
     list_init(&threads_ready);
     make_main_thread();
@@ -36,6 +50,7 @@ struct task_st *current_thread() {
 }
 
 void task_init(struct task_st *task, char *name, enum task_status status, uint32_t priority) {
+    task->pid = alloc_pid();
     strcpy(task->name, name);
     task->status = status;
     task->priority = priority;

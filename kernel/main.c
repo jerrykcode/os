@@ -7,8 +7,10 @@
 #include "console.h"
 #include "keyboard.h"
 #include "process.h"
+#include "syscall.h"
+#include "syscall-init.h"
 
-int value;
+pid_t usr1_pid, usr2_pid;
 
 void thread_1(void *);
 void thread_2(void *);
@@ -47,6 +49,11 @@ int main() {
     put_int_hex(0x00000000);
 
     init_all();
+    
+    process_execute(usrprog_1, "usr1");
+    process_execute(usrprog_2, "usr2");
+
+    asm volatile("sti");
 
     // 测试malloc_kernel_page函数
     for (int i = 0; i < 3; i++) {
@@ -56,16 +63,11 @@ int main() {
         put_char('\n');
     }
 
-    value = 0;
 
     thread_start("thread_A", 31, thread_1, " arg A "); 
-    thread_start("thread_B", 31, thread_2, " arg B ");
-    thread_start("thread_C", 31, thread_2, " arg C ");
+    thread_start("thread_B", 31, thread_2, " thread B ");
+    thread_start("thread_C", 31, thread_2, " thread C ");
 
-    process_execute(usrprog_1, "usr1");
-    process_execute(usrprog_2, "usr2");
-
-    asm volatile("sti");
     while (1) {
         //console_put_str("Main ");
     }
@@ -84,20 +86,25 @@ void thread_1(void *arg) {
 
 void thread_2(void *arg) {
     char *str = arg;
+    console_put_str(str);
+    console_put_str("pid : 0x");
+    console_put_str(sys_getpid());
+    console_put_str(" usr1 pid: 0x");
+    console_put_int_hex(usr1_pid);
+    console_put_str(" usr2 pid: 0x");
+    console_put_int_hex(usr2_pid);
     while (1) {
-        console_put_str(str);
-        console_put_int_hex(value);
     }
 }
 
 void usrprog_1() {
+    usr1_pid = getpid();
     while (1) {
-        value++;
     }
 }
 
 void usrprog_2() {
+    usr2_pid = getpid();
     while (1) {
-        value++;
     }
 }

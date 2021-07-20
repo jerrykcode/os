@@ -5,7 +5,7 @@
 #include "io.h"
 #include "asm.h"
 
-#define INTR_NUM    0x30    // 目前总共支持的中断数
+#define INTR_NUM    0x81    // 目前总共支持的中断数
 
 #define PIC_M_CTRL  0x20    // 8259A 主片的控制端口是0x20
 #define PIC_M_DATA  0x21    // 主片数据端口
@@ -28,16 +28,25 @@ extern intr_handler intr_entry_table[INTR_NUM];
 intr_handler intr_handler_table[INTR_NUM];
 char *intr_name[INTR_NUM];
 
+extern uint32_t syscall_handler();
+
+/* 创建中断门描述符 */
+static void make_idt_desc(struct intr_gate_desc *desc, uint8_t attr, intr_handler function) {
+    desc->func_offset_low_word = (uint32_t)function & 0x0000ffff;
+    desc->func_selector = SELECTOR_K_CODE;
+    desc->dcount = 0;
+    desc->attribute = attr;
+    desc->func_offset_high_word = ((uint32_t)function & 0xffff0000) >> 16;
+}
+
 /* 初始化中断描述符表idt */
 static void idt_init() {
     for (int i = 0; i < INTR_NUM; i++) {
         // 创建中断门描述符
-        idt[i].func_offset_low_word = (uint32_t)intr_entry_table[i] & 0x0000ffff;
-        idt[i].func_selector = SELECTOR_K_CODE;
-        idt[i].dcount = 0;
-        idt[i].attribute = INTR_DESC_ATTR_DPL0;
-        idt[i].func_offset_high_word = ((uint32_t)intr_entry_table[i] & 0xffff0000) >> 16;
+        make_idt_desc(&idt[i], INTR_DESC_ATTR_DPL0, intr_entry_table[i]);
     }
+    // 单独处理0x80中断 系统调用
+    make_idt_desc(&idt[0x80], INTR_DESC_ATTR_DPL3, syscall_handler);
     put_str("idt init done\n");
 }
 
