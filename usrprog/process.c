@@ -76,9 +76,11 @@ static uint32_t *create_usr_page_table() {
         return NULL;
     }
 
-    // 将内核有页表的第 [768(0x300), 1022] 共255项复制到 新页表的[768, 1022]项, 以共享内核地址
+    // 将内核页表的第 [768(0x300), 1022] 共255项复制到 新页表的[768, 1022]项, 以共享内核地址
     // 每项大小为4字节
     memcpy((uint32_t *)((uint32_t)page_table_vaddr + 0x300 * 4), (uint32_t *)(0xfffff000 + 0x300 * 4), 255 * 4);
+    // 将内核页表第0项复制到新页表的第0项, 以共享内核地址
+    memcpy(page_table_vaddr, (uint32_t *)0xfffff000, 4);
 
     // 将新页表的第1023项(最后一项)指向 新页表本身的物理地址，这样在新页表下，
     // kernel/memory.h 中的 pte_ptr和pde_pte函数 可以起作用
