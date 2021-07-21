@@ -5,9 +5,9 @@ mbr.bin: boot/mbr.S
 loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
-OBJS = main.o debug.o init.o timer.o syscall-init.o syscall.o interrupt.o thread.o process.o \
-	memory.o console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o list.o print.o \
-	kernel.o switch.o
+OBJS = main.o debug.o init.o timer.o syscall-init.o stdio.o syscall.o interrupt.o thread.o process.o \
+	memory.o console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o list.o print.o kernel.o \
+	switch.o
 
 kernel.bin: $(OBJS)
 	ld -Ttext 0xc0001500 -e main -o $@ $^
@@ -24,7 +24,7 @@ switch.o: thread/switch.S
 CFLAGS += -std=c99
 INCLUDE = -I lib/kernel/ -I lib/usr -I lib/ -I kernel/ -I device/ -I thread/ -I usrprog/
 main.o: kernel/main.c lib/kernel/print.h kernel/init.h kernel/memory.h lib/kernel/asm.h thread/thread.h kernel/debug.h \
-	device/keyboard.h device/ioqueue.h usrprog/process.h usrprog/syscall-init.h lib/usr/syscall.h
+	device/keyboard.h device/ioqueue.h usrprog/process.h usrprog/syscall-init.h lib/usr/syscall.h lib/stdio.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 init.o: kernel/init.c kernel/init.h kernel/memory.h kernel/interrupt.h device/timer.h lib/kernel/print.h \
 	device/console.h device/keyboard.h usrprog/tss.h usrprog/syscall-init.h
@@ -66,7 +66,10 @@ process.o: usrprog/process.c usrprog/process.h kernel/memory.h kernel/global.h l
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 syscall.o: lib/usr/syscall.c lib/usr/syscall.h lib/stdint.h lib/kernel/asm.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
-syscall-init.o: usrprog/syscall-init.c usrprog/syscall-init.h lib/usr/syscall.h lib/stdint.h lib/kernel/print.h thread/thread.h
+syscall-init.o: usrprog/syscall-init.c usrprog/syscall-init.h lib/usr/syscall.h lib/stdint.h lib/kernel/print.h thread/thread.h \
+	device/console.h lib/string.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+stdio.o: lib/stdio.c lib/stdio.h lib/stddef.h lib/usr/syscall.h lib/string.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 

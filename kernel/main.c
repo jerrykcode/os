@@ -9,13 +9,12 @@
 #include "process.h"
 #include "syscall.h"
 #include "syscall-init.h"
-
-pid_t usr1_pid, usr2_pid;
+#include "stdio.h"
 
 void thread_1(void *);
 void thread_2(void *);
 void usrprog_1(void);
- void usrprog_2(void) ;
+void usrprog_2(void);
 
 int main() {
     put_char('h');
@@ -88,23 +87,22 @@ void thread_2(void *arg) {
     char *str = arg;
     console_put_str(str);
     console_put_str("pid : 0x");
-    console_put_str(sys_getpid());
-    console_put_str(" usr1 pid: 0x");
-    console_put_int_hex(usr1_pid);
-    console_put_str(" usr2 pid: 0x");
-    console_put_int_hex(usr2_pid);
+    console_put_int_hex(sys_getpid());
+    console_put_char('\n');
     while (1) {
     }
 }
 
 void usrprog_1() {
-    usr1_pid = getpid();
+    pid_t usr1_pid = getpid();
+    printf("user 1 pid: 0x%x\n", usr1_pid);
     while (1) {
     }
 }
 
 void usrprog_2() {
-    usr2_pid = getpid();
+    pid_t usr2_pid = getpid();
+    printf("user 2 pid: 0x%x\n", usr2_pid);
     while (1) {
     }
 }

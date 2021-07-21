@@ -3,11 +3,13 @@
 #include "stdint.h"
 
 enum SYSCALL_NR {
-    SYS_GETPID
+    SYS_GETPID,
+    SYS_WRITE
 };
 
-#define SYSCALL_NR 1
+#define SYSCALL_NR 2
 
 uint32_t getpid();
+uint32_t write(char *str);
 
 #endif
