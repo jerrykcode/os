@@ -95,14 +95,14 @@ void thread_2(void *arg) {
 
 void usrprog_1() {
     pid_t usr1_pid = getpid();
-    printf("user 1 pid: 0x%x\n", usr1_pid);
+    printf("I am :%s; My pid: 0x%x(dec %d)%c", "user_prog_1", usr1_pid, usr1_pid, '\n');
     while (1) {
     }
 }
 
 void usrprog_2() {
-    pid_t usr2_pid = getpid();
-    printf("user 2 pid: 0x%x\n", usr2_pid);
+    pid_t usr2_pid = getpid();    
+    printf("I am :%s; My pid: 0x%x(dec %d)%c", "user_prog_2", usr2_pid, usr2_pid, '\n');
     while (1) {
     }
 }
