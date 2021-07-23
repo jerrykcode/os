@@ -6,6 +6,7 @@
 #include "debug.h"
 #include "thread.h"
 #include "bitmap.h"
+#include "list.h"
 
 #define MEM_BITMAP_BASE 0xc009a000
 
@@ -20,6 +21,18 @@ struct pool {
 
 struct pool kernel_pool, user_pool;
 struct virtual_addr kernel_vaddr;
+
+// 堆内存相关
+struct arena {
+    struct mem_block_desc *desc;
+    uint32_t cnt;
+    bool is_large;
+};
+
+// 所有内核线程共用这个mem_block_desc数组
+// 每个用户进程有自己的mem_block_desc数组
+struct mem_block_desc kernel_mem_block_descs[MEM_BLOCK_DESC_NUM];
+//
 
 static void mem_pool_init(uint32_t all_mem) {
     put_str("   mem_pool_init start\n");
@@ -77,10 +90,22 @@ static void mem_pool_init(uint32_t all_mem) {
     put_str("   mem_pool_init finished\n");
 }
 
+void mem_block_desc_init(struct mem_block_desc desc_arr[]) {
+    uint32_t block_size = 16;
+    uint32_t arena_free_mem_size = PAGE_SIZE - sizeof(struct arena); // 一个arena占一页，减去头部arena结构体剩余的是空闲内存
+    for (int i = 0; i < MEM_BLOCK_DESC_NUM; i++) {
+        desc_arr[i].block_size = block_size;
+        desc_arr[i].blocks_per_arena = arena_free_mem_size / block_size;
+        list_init(&desc_arr[i].free_mem_list);
+        block_size <<= 1; // *2
+    }
+}
+
 void mem_init() {
     put_str("mem_init start\n");
     uint32_t all_mem = (*(uint32_t *)(0xb00));
     mem_pool_init(all_mem);
+    mem_block_desc_init(kernel_mem_block_descs);
     put_str("mem_init finished\n");
 }
 

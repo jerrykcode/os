@@ -83,6 +83,7 @@ struct task_st {
     uint32_t priority; // 优先级，即初始ticks
     uint32_t *page_table; // 页表指针，线程的page_table为NULL
     struct virtual_addr usrprog_vaddr; // 用户进程的虚拟地址(用户虚拟内存位图)
+    struct mem_block_desc usrprog_mem_block_descs[MEM_BLOCK_DESC_NUM]; // 用户进程的mem_block_desc(堆内存块描述符数组)
     struct list_node_st thread_node; // 任务队列节点
     struct list_node_st thread_ready_node; // 就绪队列节点
     uint32_t stack_magic; // 判断栈溢出

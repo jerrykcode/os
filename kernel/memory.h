@@ -2,6 +2,7 @@
 #define MEMORY_H__
 #include "stdint.h"
 #include "bitmap.h"
+#include "list.h"
 
 enum pool_flags {
     PF_KERNEL,
@@ -34,6 +35,24 @@ struct virtual_addr {
 
 extern struct pool kernel_pool, user_pool;
 
+// 堆內存相关
+struct mem_block {
+    struct list_node_st node;
+};
+
+struct mem_block_desc {
+    uint32_t block_size;
+    uint32_t blocks_per_arena;
+    struct list_st free_mem_list;
+};
+
+// 7个mem_block_desc, 
+// 分别大小16，32，64，128，256，512，1024字节
+#define MEM_BLOCK_DESC_NUM    7
+
+//
+
+void mem_block_desc_init(struct mem_block_desc desc_arr[]);
 void mem_init();
 void *malloc_kernel_page(uint32_t pages_num);
 void *malloc_user_page(uint32_t pages_num);

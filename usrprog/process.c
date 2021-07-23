@@ -23,6 +23,7 @@ void process_execute(void *filename, char *name) {
     task_init(thread, name, TASK_READY, DEFAULT_PRIORITY); // 初始化内核线程
     create_usr_vaddr_btmp(thread); // 创建用户进程虚拟地址位图
     thread->page_table = create_usr_page_table(); // 创建用户进程页表
+    mem_block_desc_init(thread->usrprog_mem_block_descs); // 初始化用户进程的堆内存块描述符数组
     thread_stack_init(thread, start_process, filename); // 将start_process作为内核线程执行的函数
 
     // 加入队列
