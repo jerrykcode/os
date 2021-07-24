@@ -7,6 +7,7 @@
 #include "thread.h"
 #include "bitmap.h"
 #include "list.h"
+#include "global.h"
 
 #define MEM_BITMAP_BASE 0xc009a000
 
@@ -97,6 +98,7 @@ void mem_block_desc_init(struct mem_block_desc desc_arr[]) {
         desc_arr[i].block_size = block_size;
         desc_arr[i].blocks_per_arena = arena_free_mem_size / block_size;
         list_init(&desc_arr[i].free_mem_list);
+        lock_init(&desc_arr[i].list_lock);
         block_size <<= 1; // *2
     }
 }
@@ -273,4 +275,70 @@ uint32_t *pde_ptr(uint32_t vaddr) {
 uint32_t vaddr2phy(uint32_t vaddr) {
     uint32_t *pte = pte_ptr(vaddr);
     return ((*pte) & 0xfffff000) + (vaddr & 0x00000fff);
+}
+
+/* 返回arena中的第i个内存块地址 */
+static struct mem_block *arena2block(struct arena *a, int i) {
+    return (struct mem_block *)((uint32_t)a + sizeof(struct arena) + i * a->desc->block_size);
+}
+
+/* 返回内存块所在的arena地址 */
+static struct arena *block2arena(struct mem_block *block) {
+    return (struct arena *)((uint32_t)block & 0xfffff000);
+}
+
+/*
+申请size字节内存
+*/
+void *sys_malloc(uint32_t size) {
+    enum pool_flags pf;
+    struct task_st *cur = current_thread();
+    if (cur->page_table) {
+        // 用户进程
+        pf = PF_USER;
+    }
+    else {
+        // 内核线程
+        pf = PF_KERNEL;
+    }
+    if (size > 1024) { // 大内存
+        uint32_t page_num = DIV_ROUND_UP(size + sizeof(struct arena), PAGE_SIZE);
+        // malloc_user_page和malloc_kernel_page函数中已加锁
+        struct arena *a = (pf == PF_USER ? malloc_user_page(page_num) : malloc_kernel_page(page_num));
+        a->desc = NULL;
+        a->cnt = page_num; // 对于大内存，cnt表示内存页数
+        a->is_large = true; // 是大内存
+        return (void *)((uint32_t)a + sizeof(struct arena));
+    }
+    else { // 小于1024字节的内存
+        struct mem_block_desc *mem_block_descs = (pf == PF_USER ? cur->usrprog_mem_block_descs : kernel_mem_block_descs);
+        struct mem_block_desc *desc; // !!!!BUG!!!! 改成指针!!
+        // 搜索大小合适的内存块描述符
+        for (int i = 0; i < MEM_BLOCK_DESC_NUM; i++)
+            if (mem_block_descs[i].block_size >= size) {// 第i种内存块大小足够
+                desc = &mem_block_descs[i];
+                break;
+            }
+        lock_acquire(&desc->list_lock);
+        if (list_empty(&desc->free_mem_list)) { // 没有空闲的内存块
+            // 创建arena
+            // malloc_user_page和malloc_kernel_page函数中已加锁
+            struct arena *a = (pf == PF_USER ? malloc_user_page(1) : malloc_kernel_page(1));
+            a->desc = desc;
+            a->cnt = desc->blocks_per_arena; // 该arena含有的内存块数
+            a->is_large = false;
+            // 将arena拆分成若干内存块，并加入desc->free_mem_list链表
+            for (int i = 0; i < desc->blocks_per_arena; i++) {
+                struct mem_block *block = arena2block(a, i); // 第i个内存块地址
+                list_push_back(&desc->free_mem_list, &block->node); // 加入链表
+            }
+        }
+        // 申请内存块
+        // 链表中存储的是struct mem_block的node属性地址，而node是mem_block结构体首个属性
+        struct mem_block *block = list_pop(&desc->free_mem_list);
+        lock_release(&desc->list_lock);
+        struct arena *a = block2arena(block);
+        a->cnt--;
+        return (void *)block;
+    }
 }

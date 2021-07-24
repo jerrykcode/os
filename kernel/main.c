@@ -54,15 +54,6 @@ int main() {
 
     asm volatile("sti");
 
-    // 测试malloc_kernel_page函数
-    for (int i = 0; i < 3; i++) {
-        void *addr = malloc_kernel_page(3);
-        put_str("\n malloc_kernel_page start vaddr: 0x");
-        put_int_hex((uint32_t)addr);
-        put_char('\n');
-    }
-
-
     thread_start("thread_A", 31, thread_1, " arg A "); 
     thread_start("thread_B", 31, thread_2, " thread B ");
     thread_start("thread_C", 31, thread_2, " thread C ");
@@ -75,6 +66,8 @@ int main() {
 
 void thread_1(void *arg) {
     char *str = arg;
+    void *vaddr = sys_malloc(63);
+    printf("thread 0x%d alloc memory with virtual addr:0x%x\n", sys_getpid(), (uint32_t)vaddr);
     while (1) {
         console_put_str(str);
         char ch = ioqueue_getchar(&ioqueue);
@@ -89,6 +82,8 @@ void thread_2(void *arg) {
     console_put_str("pid : 0x");
     console_put_int_hex(sys_getpid());
     console_put_char('\n');
+    void *vaddr = sys_malloc(33);
+    printf("thread 0x%d alloc memory with virtual addr:0x%x\n", sys_getpid(), (uint32_t)vaddr);
     while (1) {
     }
 }

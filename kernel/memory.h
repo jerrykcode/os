@@ -3,6 +3,7 @@
 #include "stdint.h"
 #include "bitmap.h"
 #include "list.h"
+#include "sync.h"
 
 enum pool_flags {
     PF_KERNEL,
@@ -44,6 +45,7 @@ struct mem_block_desc {
     uint32_t block_size;
     uint32_t blocks_per_arena;
     struct list_st free_mem_list;
+    struct lock_st list_lock;
 };
 
 // 7个mem_block_desc, 
@@ -61,5 +63,6 @@ void *malloc_page_with_vaddr(enum pool_flags pf, uint32_t vaddr);
 uint32_t *pte_ptr(uint32_t vaddr);
 uint32_t *pde_ptr(uint32_t vaddr);
 uint32_t vaddr2phy(uint32_t vaddr);
+void *sys_malloc(uint32_t size);
 
 #endif
