@@ -38,7 +38,7 @@ timer.o: device/timer.c device/timer.h lib/stdint.h lib/kernel/io.h lib/kernel/p
 debug.o: kernel/debug.c kernel/debug.h kernel/interrupt.h lib/kernel/print.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 memory.o: kernel/memory.c kernel/memory.h lib/string.h lib/stdint.h lib/kernel/bitmap.h lib/kernel/print.h lib/kernel/list.h \
-	thread/thread.h kernel/global.h 
+	thread/thread.h kernel/global.h lib/kernel/asm.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 bitmap.o: lib/kernel/bitmap.c lib/kernel/bitmap.h lib/stdint.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)

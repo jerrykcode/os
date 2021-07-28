@@ -8,6 +8,7 @@
 #include "bitmap.h"
 #include "list.h"
 #include "global.h"
+#include "asm.h"
 
 #define MEM_BITMAP_BASE 0xc009a000
 
@@ -341,4 +342,67 @@ void *sys_malloc(uint32_t size) {
         a->cnt--;
         return (void *)block;
     }
+}
+
+// 以下是释放内存相关函数
+
+/* 释放一页物理内存 */
+static void phy_page_free(uint32_t phy_addr) {
+    struct pool *m_pool;
+    if (phy_addr >= user_pool.phy_addr_start)
+        m_pool = &user_pool;
+    else
+        m_pool = &kernel_pool;
+    int bit_index = (phy_addr - m_pool->phy_addr_start) / PAGE_SIZE;
+    // 将相应的位置为BTMP_MEM_FRE
+    bitmap_setbit(&m_pool->pool_btmp, bit_index, BTMP_MEM_FREE);
+}
+
+/* 删除页表中的虚拟地址映射 */
+static void vaddr_page_map_remove(uint32_t vaddr) {
+    uint32_t *pte = pte_ptr(vaddr);
+    *pte &= ~PG_P_1; // pte的P位置0
+    asm volatile ("invlpg %0" : : "m"(vaddr) : "memory"); // 更新TLB
+}
+
+/* 释放虚拟地址从vaddr起始的连续pages_num页虚拟内存 */
+static void virtual_pages_free(struct virtual_addr *m_vaddr, uint32_t vaddr, uint32_t pages_num) {
+    int bit_index = (vaddr - m_vaddr->vaddr_start) / PAGE_SIZE;
+    for (int i = 0; i < pages_num; i++) {
+        bitmap_setbit(&m_vaddr->vaddr_btmp, bit_index + i, BTMP_MEM_FREE);
+    }
+}
+
+/* 释放虚拟地址从vaddr开始的连续pages_num页内存 */
+static void pages_free(uint32_t vaddr, uint32_t pages_num) {
+    ASSERT(pages_num >= 1 && (vaddr % PAGE_SIZE == 0));
+    uint32_t phyaddr;
+    struct task_st *cur = current_thread();
+    struct virtual_addr *m_vaddr;
+    if (cur->page_table) {
+        // 用户进程
+        m_vaddr = &cur->usrprog_vaddr;
+        for (int i = 0; i < pages_num; i++) {
+            phyaddr = vaddr2phy(vaddr);
+            // 确保phyaddr在用户内存池内
+            ASSERT((phyaddr % PAGE_SIZE == 0) && phyaddr >= user_pool.phy_addr_start);
+            phy_page_free(phyaddr);
+            vaddr_page_map_remove(vaddr);
+            vaddr += PAGE_SIZE;
+        }
+    }
+    else {
+        // 内核线程
+        m_vaddr = &kernel_vaddr;
+        for (int i = 0; i < pages_num; i++) {
+            phyaddr = vaddr2phy(vaddr);
+            // 确保phyaddr是内核内存
+            ASSERT((phyaddr % PAGE_SIZE == 0) && phyaddr >= kernel_pool.phy_addr_start \
+                && phyaddr < user_pool.phy_addr_start);
+            phy_page_free(phyaddr);
+            vaddr_page_map_remove(vaddr);
+            vaddr += PAGE_SIZE;
+        }
+    }
+    virtual_pages_free(m_vaddr, vaddr, pages_num);
 }
