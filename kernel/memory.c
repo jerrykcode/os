@@ -313,7 +313,7 @@ void *sys_malloc(uint32_t size) {
     }
     else { // 小于1024字节的内存
         struct mem_block_desc *mem_block_descs = (pf == PF_USER ? cur->usrprog_mem_block_descs : kernel_mem_block_descs);
-        struct mem_block_desc *desc; // !!!!BUG!!!! 改成指针!!
+        struct mem_block_desc *desc;
         // 搜索大小合适的内存块描述符
         for (int i = 0; i < MEM_BLOCK_DESC_NUM; i++)
             if (mem_block_descs[i].block_size >= size) {// 第i种内存块大小足够
@@ -379,9 +379,12 @@ static void pages_free(uint32_t vaddr, uint32_t pages_num) {
     uint32_t phyaddr;
     struct task_st *cur = current_thread();
     struct virtual_addr *m_vaddr;
+    struct lock_st *m_lock = NULL;
     if (cur->page_table) {
         // 用户进程
         m_vaddr = &cur->usrprog_vaddr;
+        m_lock = &user_pool.lock;
+        lock_acquire(m_lock);
         for (int i = 0; i < pages_num; i++) {
             phyaddr = vaddr2phy(vaddr);
             // 确保phyaddr在用户内存池内
@@ -394,6 +397,8 @@ static void pages_free(uint32_t vaddr, uint32_t pages_num) {
     else {
         // 内核线程
         m_vaddr = &kernel_vaddr;
+        m_lock = &kernel_pool.lock;
+        lock_acquire(m_lock);
         for (int i = 0; i < pages_num; i++) {
             phyaddr = vaddr2phy(vaddr);
             // 确保phyaddr是内核内存
@@ -405,4 +410,36 @@ static void pages_free(uint32_t vaddr, uint32_t pages_num) {
         }
     }
     virtual_pages_free(m_vaddr, vaddr, pages_num);
+    ASSERT(m_lock != NULL);
+    lock_release(m_lock);
+}
+
+void sys_free(void *ptr) {
+    ASSERT(ptr != NULL);
+    if (ptr != NULL) {
+        struct mem_block *m_block = (struct mem_block *)ptr;
+        struct arena *a = block2arena(m_block);
+        lock_acquire(&a->desc->list_lock);
+        // 回收block，加入链表
+        list_push_back(&a->desc->free_mem_list, &m_block->node);
+        if (a->cnt < a->desc->blocks_per_arena - 1) {
+            // arena中仍存在未回收的block, arena不能回收
+            a->cnt++;
+            // 解锁并返回
+            lock_release(&a->desc->list_lock);
+            return;
+        }
+        // arena的所有block均已回收，整个arena可以被回收
+        a->cnt = 0;
+        // 遍历移除arena中的所有block
+        for (int i = 0; i < a->desc->blocks_per_arena; i++) {
+            m_block = arena2block(a, i);
+            ASSERT(list_exist(&a->desc->free_mem_list, &m_block->node));
+            list_remove(&a->desc->free_mem_list, &m_block->node);
+        }
+        // 链表操作完毕，解锁
+        lock_release(&a->desc->list_lock);
+        // 删除arena这一整页内存
+        pages_free((uint32_t)a, 1);
+    }
 }

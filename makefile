@@ -68,7 +68,7 @@ process.o: usrprog/process.c usrprog/process.h kernel/memory.h kernel/global.h l
 syscall.o: lib/usr/syscall.c lib/usr/syscall.h lib/stdint.h lib/kernel/asm.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 syscall-init.o: usrprog/syscall-init.c usrprog/syscall-init.h lib/usr/syscall.h lib/stdint.h lib/kernel/print.h thread/thread.h \
-	device/console.h lib/string.h
+	device/console.h lib/string.h kernel/memory.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 stdio.o: lib/stdio.c lib/stdio.h lib/stddef.h lib/usr/syscall.h lib/string.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)

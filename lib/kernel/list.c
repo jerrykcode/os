@@ -86,3 +86,21 @@ bool list_exist(struct list_st *list, list_node node) {
     }
     return false;
 }
+
+// 调用此函数需要确保list中存在node
+// 此函数中不进行判断
+void list_remove(struct list_st *list, list_node node) {
+    if (node == NULL)
+        return;
+    list_node pre = node->pre;
+    list_node next = node->next;
+    if (pre)
+        pre->next = next; // 跨过node
+    else // pre不存在，说明node是head, 移除node则head需要更新为next
+        list->head = next;
+
+    if (next)
+        next->pre = pre; // 跨过node
+    else // next不存在，说明node是tail, 移除node则需要更新tail为pre
+        list->tail = pre;
+}

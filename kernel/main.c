@@ -82,22 +82,45 @@ void thread_2(void *arg) {
     console_put_str("pid : 0x");
     console_put_int_hex(sys_getpid());
     console_put_char('\n');
-    void *vaddr = sys_malloc(33);
-    printf("thread 0x%d alloc memory with virtual addr:0x%x\n", sys_getpid(), (uint32_t)vaddr);
+    void *vaddr0 = sys_malloc(256);
+    void *vaddr1 = sys_malloc(255);
+    void *vaddr2 = sys_malloc(254);
+    printf("thread 0x%d alloc memory with virtual addr:0x%x; 0x%x; 0x%x\n", sys_getpid(), (uint32_t)vaddr0, (uint32_t)vaddr1, (uint32_t)vaddr2);
+    sys_free(vaddr0);
+    sys_free(vaddr1);
+    sys_free(vaddr2);
     while (1) {
     }
 }
 
 void usrprog_1() {
     pid_t usr1_pid = getpid();
-    printf("I am :%s; My pid: 0x%x(dec %d)%c", "user_prog_1", usr1_pid, usr1_pid, '\n');
+    for (int i = 0; i < 3; i++) {
+        void *vaddr0 = malloc(256);
+        void *vaddr1 = malloc(255);
+        void *vaddr2 = malloc(254);
+        printf("I am :%s; My pid: 0x%x(dec %d)%c. #%d alloc memory with virtual addr: 0x%x; 0x%x; 0x%x\n", "user_prog_1", usr1_pid, usr1_pid, '\n', \
+           i, (uint32_t)vaddr0, (uint32_t)vaddr1, (uint32_t)vaddr2);
+        free(vaddr0);
+        free(vaddr1);
+        free(vaddr2);
+    }
     while (1) {
     }
 }
 
 void usrprog_2() {
     pid_t usr2_pid = getpid();    
-    printf("I am :%s; My pid: 0x%x(dec %d)%c", "user_prog_2", usr2_pid, usr2_pid, '\n');
+    for (int i = 0; i < 3; i++) {
+        void *vaddr0 = malloc(256);
+        void *vaddr1 = malloc(255);
+        void *vaddr2 = malloc(254);
+        printf("I am :%s; My pid: 0x%x(dec %d)%c. #%d alloc memory with virtual addr: 0x%x; 0x%x; 0x%x\n", "user_prog_2", usr2_pid, usr2_pid, '\n', \
+           i, (uint32_t)vaddr0, (uint32_t)vaddr1, (uint32_t)vaddr2);
+        free(vaddr0);
+        free(vaddr1);
+        free(vaddr2);
+    }
     while (1) {
     }
 }

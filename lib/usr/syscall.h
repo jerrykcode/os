@@ -4,12 +4,16 @@
 
 enum SYSCALL_NR {
     SYS_GETPID,
-    SYS_WRITE
+    SYS_WRITE,
+    SYS_MALLOC,
+    SYS_FREE
 };
 
 #define SYSCALL_NR 2
 
 uint32_t getpid();
 uint32_t write(char *str);
+void *malloc(uint32_t size);
+void free(void *ptr);
 
 #endif
