@@ -5,8 +5,8 @@ mbr.bin: boot/mbr.S
 loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
-OBJS = main.o debug.o init.o timer.o syscall-init.o stdio.o syscall.o interrupt.o thread.o process.o \
-	memory.o console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o list.o print.o kernel.o \
+OBJS = main.o debug.o init.o timer.o syscall-init.o ide.o stdio.o stdio-kernel.o syscall.o interrupt.o thread.o \
+	process.o memory.o console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o list.o print.o kernel.o \
 	switch.o
 
 kernel.bin: $(OBJS)
@@ -27,7 +27,7 @@ main.o: kernel/main.c lib/kernel/print.h kernel/init.h kernel/memory.h lib/kerne
 	device/keyboard.h device/ioqueue.h usrprog/process.h usrprog/syscall-init.h lib/usr/syscall.h lib/stdio.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 init.o: kernel/init.c kernel/init.h kernel/memory.h kernel/interrupt.h device/timer.h lib/kernel/print.h \
-	device/console.h device/keyboard.h usrprog/tss.h usrprog/syscall-init.h
+	device/console.h device/keyboard.h usrprog/tss.h usrprog/syscall-init.h device/ide.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 interrupt.o: kernel/interrupt.c kernel/interrupt.h kernel/global.h \
 	lib/stdint.h lib/kernel/print.h  lib/kernel/io.h lib/kernel/asm.h
@@ -71,6 +71,11 @@ syscall-init.o: usrprog/syscall-init.c usrprog/syscall-init.h lib/usr/syscall.h 
 	device/console.h lib/string.h kernel/memory.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 stdio.o: lib/stdio.c lib/stdio.h lib/stddef.h lib/usr/syscall.h lib/string.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+stdio-kernel.o: lib/kernel/stdio-kernel.c lib/kernel/stdio-kernel.h lib/stdint.h lib/stdio.h lib/stddef.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+ide.o: device/ide.c device/ide.h thread/sync.h lib/stdio.h lib/kernel/stdio-kernel.h kernel/interrupt.h kernel/memory.h \
+	kernel/debug.h lib/string.h kernel/global.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 
