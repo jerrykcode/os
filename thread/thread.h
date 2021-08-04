@@ -97,6 +97,7 @@ void thread_stack_init(struct task_st *task, thread_func func, void *args);
 void schedule();
 void thread_block(enum task_status status);
 void thread_unblock(struct task_st *pthread);
+void thread_yield();
 struct task_st *node_to_thread(list_node node);
 
 #endif

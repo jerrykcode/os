@@ -5,6 +5,7 @@
 #include "thread.h"
 #include "interrupt.h"
 #include "debug.h"
+#include "global.h"
 
 #define PIT_CONTROL_PORT    0x43
 #define COUNTER_0_PORT      0x40
@@ -13,6 +14,8 @@
 #define READ_WRITE_LATCH    3
 #define IRQ_FREQUENCY       100
 #define INPUT_FREQUENCY     1193180
+
+#define mil_seconds_per_intr (1000 / IRQ_FREQUENCY)
 
 uint32_t total_ticks;
 
@@ -43,4 +46,17 @@ void timer_init() {
     set_frequency(COUNTER_0_NO, READ_WRITE_LATCH, COUNTER_MODE, (INPUT_FREQUENCY / IRQ_FREQUENCY));
     register_handler(0x20, intr_timer_handler);
     put_str("timer_init done\n");
+}
+
+static void ticks_to_sleep(uint32_t sleep_ticks) {
+    int end_tick = total_ticks + sleep_ticks;
+    while (total_ticks < end_tick) {
+        thread_yield();
+    }
+}
+
+void sys_sleep(uint32_t ms) {
+    uint32_t sleep_ticks = DIV_ROUND_UP(ms, mil_seconds_per_intr);
+    ASSERT(sleep_ticks > 0);
+    ticks_to_sleep(sleep_ticks);
 }

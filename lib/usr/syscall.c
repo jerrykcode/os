@@ -81,5 +81,10 @@ void *malloc(uint32_t size) {
 
 /* 释放内存 */
 void free(void *ptr) {
-    return _syscall1(SYS_FREE, ptr);
+    _syscall1(SYS_FREE, ptr);
+}
+
+/* 暂停执行ms毫秒 */
+void sleep(uint32_t ms) {
+    _syscall1(SYS_SLEEP, ms);
 }

@@ -119,7 +119,7 @@ void schedule() {
         list_push_back(&threads_ready, &cur->thread_ready_node);
     }
     else {
-        // 线程阻塞
+        // 线程阻塞或者yield
     }
 
     ASSERT(!list_empty(&threads_ready));
@@ -160,7 +160,17 @@ void thread_unblock(struct task_st *pthread) {
     }
 }
 
+/* 主动让出CPU, 当前线程加入就绪队列，切换至其他线程 */
+void thread_yield() {
+    struct task_st *cur = current_thread();
+    enum intr_status old_status = intr_disable(); // 关闭中断
+    cur->status = TASK_READY; // 运行态转为就绪态
+    list_push_back(&threads_ready, &cur->thread_ready_node); // 加入就绪队列
+    schedule(); // 调度，切换至其他线程，由于状态已切换至就绪态，schedule()函数中不会再次加入队列 \
+                    也不会更新时间片
+    intr_set_status(old_status);
+}
+
 struct task_st *node_to_thread(list_node node) {
     return (struct task_st *)((uint32_t)node & 0xfffff000);
 }
-

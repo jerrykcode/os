@@ -115,6 +115,7 @@ void usrprog_2() {
         void *vaddr0 = malloc(256);
         void *vaddr1 = malloc(255);
         void *vaddr2 = malloc(254);
+        sleep(5000); // 暂停5秒
         printf("I am :%s; My pid: 0x%x(dec %d)%c. #%d alloc memory with virtual addr: 0x%x; 0x%x; 0x%x\n", "user_prog_2", usr2_pid, usr2_pid, '\n', \
            i, (uint32_t)vaddr0, (uint32_t)vaddr1, (uint32_t)vaddr2);
         free(vaddr0);
