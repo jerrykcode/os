@@ -15,5 +15,6 @@ ata0: enabled=1, ioaddr1=0x01f0, ioaddr2=0x3f0, irq=14
 #gdbstub: enabled=1, port=1234, text_base=0, data_base=0, bss_base=0
 
 ata0-master: type=disk, path="/home/jerry/bochs/hd60M.img", mode=flat
+ata0-slave: type=disk, path="/home/jerry/bochs/hd80M.img", mode=flat
 
 #display_library: sdl
