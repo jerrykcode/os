@@ -42,4 +42,7 @@ extern uint8_t channel_num;
 extern struct ide_channel_st channels[];
 
 void ide_init();
+void ide_read(struct disk_st *hd, uint32_t lba, uint32_t sec_num, void *dest);
+void ide_write(struct disk_st *hd, uint32_t lba, uint32_t sec_num, void *src);
+void intr_hd_handler(uint8_t irq_no);
 #endif

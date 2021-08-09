@@ -1,5 +1,7 @@
 #include "ide.h"
 #include "sync.h"
+#include "io.h"
+#include "timer.h"
 #include "stdio.h"
 #include "stdio-kernel.h"
 #include "interrupt.h"
@@ -11,7 +13,7 @@
 /* 定义硬盘各寄存器的端口号 */
 #define reg_data(channel)	 (channel->port_base + 0)
 #define reg_error(channel)	 (channel->port_base + 1)
-#define reg_sect_cnt(channel)	 (channel->port_base + 2)
+#define reg_sec_num(channel)	 (channel->port_base + 2)
 #define reg_lba_l(channel)	 (channel->port_base + 3)
 #define reg_lba_m(channel)	 (channel->port_base + 4)
 #define reg_lba_h(channel)	 (channel->port_base + 5)
@@ -71,4 +73,122 @@ void ide_init() {
         semaphore_init(&channel->disk_done, 0);        
     }
     k_printf("ide_init finished\n");
+}
+
+/* 向寄存器指定操作的硬盘 */
+static void select_disk(struct disk_st *hd) {
+    uint8_t reg_device = BIT_DEV_MBS | BIT_DEV_LBA;
+    if (hd->dev_no == 1) { // 从盘
+        reg_deivce |= BIT_DEV_DEV;
+    }
+    outb(reg_dev(hd->my_channel), reg_device);
+}
+
+/* 向寄存器指定起始扇区地址及待操作的扇区数量 */
+static void select_sector(struct disk_st *hd, uint32_t lba, uint8_t sec_num) {
+    ASSERT(lba <= max_lba);
+    struct ide_channel_st *channel = hd->my_channel;
+    /* 写入channel相应的寄存器 */
+    out_b(reg_sec_num(channel), sec_num); // 指定扇区数量
+    out_b(reg_lba_l(channel), lba); // 指定lba低8位
+    out_b(reg_lba_m(channel), lba >> 8); // 指定lba 8~15位
+    out_b(reg_lba_h(channel), lba >> 16); // 指定lba 16~23位
+    out_b(reg_dev(channel), \ 
+        BIT_DEV_MBS | BIT_DEV_LBA | (hd->dev_no == 1 ? BIT_DEV_DEV : 0) \
+        | lba >> 24); // lba的24~27位
+}
+
+/* 向通道channel发cmd命令 */
+static void cmd_out(struct ide_channel_st *channel, uint8_t cmd) {
+    channel->expecting_intr = true;
+    outb(reg_cmd(channel), cmd);
+}
+
+/* 从硬盘读入sec_num个扇区的内容到dest
+    最多读入256个，sec_num作为uint8_t类型最大255，sec_num为0时表示读入256个扇区 */
+static void read_from_sector(struct disk_st *hd, void *dest, uint8_t sec_num) {
+    uint32_t size_in_byte;
+    if (sec_num == 0) {
+        // 0表示256个
+        size_in_byte = 256 * 512;
+    }
+    else {
+        size_in_byte = sec_num * 512;
+    }
+    insw(reg_data(hd->my_channel), dest, size_in_byte / 2);
+}
+
+/* 将src处sec_num个扇区大小的内容写入硬盘 */
+static void write2sector(struct disk_st *hd, void *src, uint8_t sec_num) {
+    uint32_t size_in_byte;
+    if (sec_num == 0) {
+        size_in_byte = 256 * 512;
+    }
+    else {
+        size_in_byte = sec_num * 512;
+    }
+    outsw(reg_data(hd->my_channel), src, size_in_byte / 2);
+}
+
+/* 等待硬盘准备 最多等待30秒 */
+static bool busy_wait(struct disk_st *hd) {
+    struct ide_channel_st *channel = hd->my_channel;
+    uint32_t time_limit = 30 * 1000;
+    while (time_limit) {
+        time_limit -= 10;
+        if (! (inb(reg_status(channel)) & BIT_STAT_BSY)) { // 硬盘准备好了
+            return (inb(reg_status(channel)) & BIT_STAT_DRQ);
+        }
+        else {
+            sys_sleep(10);
+        }
+    }
+    return false;
+}
+
+/* 从硬盘hd的lba扇区读取sec_num个扇区的内容至内存地址dest处 */
+void ide_read(struct disk_st *hd, uint32_t lba, uint32_t sec_num, void *dest) {
+    ASSERT(lba < max_lba);
+    ASSERT(sec_num > 0);
+    lock_acquire(&hd->my_channel->lock);
+
+    // 指定硬盘
+    select_disk(hd);
+
+    // 每次最多读取256个扇区
+    while (sec_num) {
+        // 本次读取的扇区数量
+        uint8_t sec_num_this_time = sec_num < 256 ? sec_num : 256;
+        sec_num -= sec_num_this_time;
+
+        // 指定起始扇区及扇区数量
+        select_sector(hd, lba, sec_num_this_time);
+        lba += sec_num_this_time;
+        // 发送命令
+        cmd_out(hd->mychannel, READ_SECTOR);
+        // 阻塞，等待被硬盘中断唤醒
+        semaphore_down(&hd->my_channel->disk_done);
+
+        // 等待硬盘准备
+        if (busy_wait(hd)) {
+            read_from_sector(hd, dest, sec_num_this_time);
+            dest = (void *)((uint32_t)dest + sec_num_this_time * 512); // 一个扇区512字节
+        }
+        else {
+            char error[64];
+            sprintf(error, "%s read sector #%d failed!!!\n", hd->name, lba);
+            PANIC(error);
+        }
+    }
+
+    lock_release(&hd->my_channel->lock);
+}
+
+/* */
+void ide_write(struct disk_st *hd, uint32_t lba, uint32_t sec_num, void *src) {
+    
+}
+
+void intr_hd_handler(uint8_t irq_no) {
+
 }
