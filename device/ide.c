@@ -79,7 +79,7 @@ void ide_init() {
 static void select_disk(struct disk_st *hd) {
     uint8_t reg_device = BIT_DEV_MBS | BIT_DEV_LBA;
     if (hd->dev_no == 1) { // 从盘
-        reg_deivce |= BIT_DEV_DEV;
+        reg_device |= BIT_DEV_DEV;
     }
     outb(reg_dev(hd->my_channel), reg_device);
 }
@@ -89,11 +89,11 @@ static void select_sector(struct disk_st *hd, uint32_t lba, uint8_t sec_num) {
     ASSERT(lba <= max_lba);
     struct ide_channel_st *channel = hd->my_channel;
     /* 写入channel相应的寄存器 */
-    out_b(reg_sec_num(channel), sec_num); // 指定扇区数量
-    out_b(reg_lba_l(channel), lba); // 指定lba低8位
-    out_b(reg_lba_m(channel), lba >> 8); // 指定lba 8~15位
-    out_b(reg_lba_h(channel), lba >> 16); // 指定lba 16~23位
-    out_b(reg_dev(channel), \ 
+    outb(reg_sec_num(channel), sec_num); // 指定扇区数量, 若为0，则表示256个
+    outb(reg_lba_l(channel), lba); // 指定lba低8位
+    outb(reg_lba_m(channel), lba >> 8); // 指定lba 8~15位
+    outb(reg_lba_h(channel), lba >> 16); // 指定lba 16~23位
+    outb(reg_dev(channel), \ 
         BIT_DEV_MBS | BIT_DEV_LBA | (hd->dev_no == 1 ? BIT_DEV_DEV : 0) \
         | lba >> 24); // lba的24~27位
 }
@@ -158,20 +158,20 @@ void ide_read(struct disk_st *hd, uint32_t lba, uint32_t sec_num, void *dest) {
     // 每次最多读取256个扇区
     while (sec_num) {
         // 本次读取的扇区数量
-        uint8_t sec_num_this_time = sec_num < 256 ? sec_num : 256;
+        uint32_t sec_num_this_time = sec_num < 256 ? sec_num : 256;
         sec_num -= sec_num_this_time;
 
         // 指定起始扇区及扇区数量
-        select_sector(hd, lba, sec_num_this_time);
+        select_sector(hd, lba, (uint8_t)sec_num_this_time);
         lba += sec_num_this_time;
         // 发送命令
-        cmd_out(hd->mychannel, READ_SECTOR);
+        cmd_out(hd->my_channel, CMD_READ_SECTOR);
         // 阻塞，等待被硬盘中断唤醒
         semaphore_down(&hd->my_channel->disk_done);
 
         // 等待硬盘准备
         if (busy_wait(hd)) {
-            read_from_sector(hd, dest, sec_num_this_time);
+            read_from_sector(hd, dest, (uint8_t)sec_num_this_time);
             dest = (void *)((uint32_t)dest + sec_num_this_time * 512); // 一个扇区512字节
         }
         else {
@@ -184,11 +184,56 @@ void ide_read(struct disk_st *hd, uint32_t lba, uint32_t sec_num, void *dest) {
     lock_release(&hd->my_channel->lock);
 }
 
-/* */
+/* 将内存地址src处起始的sec_num扇区内容写入硬盘hd的lba扇区处 */
 void ide_write(struct disk_st *hd, uint32_t lba, uint32_t sec_num, void *src) {
-    
+    ASSERT(lba < max_lba);
+    ASSERT(sec_num > 0);
+    lock_acquire(&hd->my_channel->lock);
+
+    // 指定硬盘
+    select_disk(hd);
+
+    // 分次写入，每次最多写入256个扇区
+    while (sec_num) {
+        // 本次写入的扇区数量
+        uint32_t sec_num_this_time = sec_num < 256 ? sec_num : 256;
+        sec_num -= sec_num_this_time;
+
+        // 指定起始扇区及扇区数量
+        select_sector(hd, lba, (uint8_t)sec_num_this_time); // 0表示256
+        lba += sec_num_this_time;
+
+        // 发送命令
+        cmd_out(hd->my_channel, CMD_WRITE_SECTOR);
+
+        // 等待硬盘准备
+        if (busy_wait(hd)) {
+            // 写入
+            write2sector(hd, src, (uint8_t)sec_num_this_time);
+            src = (void *)((uint32_t)src + sec_num_this_time * 512);
+        }
+        else {
+            char error[64];
+            sprintf(error, "%s write sector #%d failed!!!\n", hd->name, lba);
+            PANIC(error);
+        }
+
+        // 阻塞
+        semaphore_down(&hd->my_channel->disk_done);
+    }
+
+    lock_release(&hd->my_channel->lock);
 }
 
+/* 硬盘中断处理函数 */
 void intr_hd_handler(uint8_t irq_no) {
-
+    ASSERT(irq_no == 0x2e || irq_no == 0x2f);
+    uint8_t channel_index = irq_no - 0x2e;
+    struct ide_channel_st *channel = &channels[channel_index];
+    ASSERT(channel->irq_no == irq_no);
+    if (channel->expecting_intr) {
+        channel->expecting_intr = false;
+        semaphore_up(&channel->disk_done);
+        inb(reg_status(channel));
+    }
 }
