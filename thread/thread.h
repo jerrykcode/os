@@ -92,7 +92,7 @@ struct task_st {
 void thread_environment_init();
 struct task_st *current_thread();
 void task_init(struct task_st *task, char *name, enum task_status status, uint32_t priority);
-void thread_start(char *name, uint32_t priority, thread_func func, void *args);
+struct task_st *thread_start(char *name, uint32_t priority, thread_func func, void *args);
 void thread_stack_init(struct task_st *task, thread_func func, void *args);
 void schedule();
 void thread_block(enum task_status status);

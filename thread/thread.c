@@ -16,6 +16,16 @@ struct lock_st pid_lock;
 
 extern void switch_to(struct task_st *cur, struct task_st *next);
 
+/* 系统空闲时运行的线程 */
+struct task_st *idle_thread;
+
+static void idle_thread_func(void *arg) {
+    while (1) {
+        thread_block(TASK_BLOCKED);
+        asm volatile ("sti; hlt" : : : "memory");
+    }
+}
+
 /* 分配pid */
 static pid_t alloc_pid() {
     static pid_t pid = 0;
@@ -40,6 +50,7 @@ void thread_environment_init() {
     list_init(&threads_all);
     list_init(&threads_ready);
     make_main_thread();
+    idle_thread = thread_start("idle", 10, idle_thread_func, NULL);
     put_str("thread_environment_init end\n");
 }
 
@@ -60,12 +71,13 @@ void task_init(struct task_st *task, char *name, enum task_status status, uint32
 }
 
 /* 启动新线程 */
-void thread_start(char *name, uint32_t priority, thread_func func, void *args) {
+struct task_st *thread_start(char *name, uint32_t priority, thread_func func, void *args) {
     struct task_st *task = malloc_kernel_page(1); // 1页内存，从内核内存池申请
     task_init(task, name, TASK_READY, priority);
     thread_stack_init(task, func, args);
     list_push_back(&threads_all, &task->thread_node);
     list_push_back(&threads_ready, &task->thread_ready_node);
+    return task;
 }
 
 void thread_func_entry(thread_func func, void *args) {
@@ -120,6 +132,11 @@ void schedule() {
     }
     else {
         // 线程阻塞或者yield
+    }
+
+    if (list_empty(&threads_ready)) {
+        // 系统没有就绪态的线程，运行idle线程
+        thread_unblock(idle_thread);
     }
 
     ASSERT(!list_empty(&threads_ready));

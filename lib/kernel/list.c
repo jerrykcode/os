@@ -104,3 +104,12 @@ void list_remove(struct list_st *list, list_node node) {
     else // next不存在，说明node是tail, 移除node则需要更新tail为pre
         list->tail = pre;
 }
+
+void list_traversal(struct list_st *list, bool (*func)(list_node, int), int arg) {
+    list_node node = list->head;
+    while (node) {
+        if (func(node, arg))
+            break;
+        node = node->next;
+    }
+}

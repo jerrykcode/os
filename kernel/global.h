@@ -119,5 +119,7 @@ struct gdt_desc {
 // 其他通用定义
 
 #define DIV_ROUND_UP(X, STEP)   ((X + STEP - 1) / (STEP))
+#define elem2entry(struct_type, member_name, elem_ptr) \
+    (struct_type *)((int)elem_ptr - (int)(&((struct_type *)0)->member_name))
 
 #endif

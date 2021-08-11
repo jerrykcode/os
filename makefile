@@ -75,7 +75,7 @@ stdio.o: lib/stdio.c lib/stdio.h lib/stddef.h lib/usr/syscall.h lib/string.h
 stdio-kernel.o: lib/kernel/stdio-kernel.c lib/kernel/stdio-kernel.h lib/stdint.h lib/stdio.h lib/stddef.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 ide.o: device/ide.c device/ide.h thread/sync.h lib/stdio.h lib/kernel/stdio-kernel.h kernel/interrupt.h kernel/memory.h \
-	kernel/debug.h lib/string.h kernel/global.h
+	kernel/debug.h lib/string.h kernel/global.h lib/kernel/bitmap.h lib/kernel/io.h device/timer.h lib/stddef.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 

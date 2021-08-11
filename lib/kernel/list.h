@@ -20,5 +20,6 @@ list_node list_pop(struct list_st *list); // 从队列头弹出
 bool list_empty(struct list_st *list);
 bool list_exist(struct list_st *list, list_node node);
 void list_remove(struct list_st *list, list_node node);
+void list_traversal(struct list_st *list, bool (*func)(list_node, int), int arg);
 
 #endif
