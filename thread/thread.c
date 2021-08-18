@@ -182,6 +182,11 @@ void thread_yield() {
     struct task_st *cur = current_thread();
     enum intr_status old_status = intr_disable(); // 关闭中断
     cur->status = TASK_READY; // 运行态转为就绪态
+    if (list_empty(&threads_ready)) {
+        // 若没有就绪线程，则唤醒idle_thread
+        // 这样schedule之后才能切换到idle_thread
+        thread_unblock(idle_thread);
+    }
     list_push_back(&threads_ready, &cur->thread_ready_node); // 加入就绪队列
     schedule(); // 调度，切换至其他线程，由于状态已切换至就绪态，schedule()函数中不会再次加入队列 \
                     也不会更新时间片

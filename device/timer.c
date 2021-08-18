@@ -17,7 +17,7 @@
 
 #define mil_seconds_per_intr (1000 / IRQ_FREQUENCY)
 
-uint32_t total_ticks;
+uint32_t total_ticks = 0;
 
 static void set_frequency(uint8_t counter_no,
                           uint8_t rwl,
@@ -42,7 +42,6 @@ static void intr_timer_handler() {
 
 void timer_init() {
     put_str("timer_init start\n");
-    total_ticks = 0;
     set_frequency(COUNTER_0_NO, READ_WRITE_LATCH, COUNTER_MODE, (INPUT_FREQUENCY / IRQ_FREQUENCY));
     register_handler(0x20, intr_timer_handler);
     put_str("timer_init done\n");

@@ -163,7 +163,7 @@ void ide_read(struct disk_st *hd, uint32_t lba, uint32_t sec_num, void *dest) {
         // 发送命令
         cmd_out(hd->my_channel, CMD_READ_SECTOR);
         // 阻塞，等待被硬盘中断唤醒
-        //semaphore_down(&hd->my_channel->disk_done);
+//        semaphore_down(&hd->my_channel->disk_done);
 
         // 等待硬盘准备
         if (busy_wait(hd)) {
@@ -215,7 +215,7 @@ void ide_write(struct disk_st *hd, uint32_t lba, uint32_t sec_num, void *src) {
         }
 
         // 阻塞
-        //semaphore_down(&hd->my_channel->disk_done);
+ //       semaphore_down(&hd->my_channel->disk_done);
     }
 
     lock_release(&hd->my_channel->lock);
@@ -235,7 +235,7 @@ static void swap_pairs_bytes_cpy(const char *src, char *dst, uint32_t len) {
 static void identify_disk(struct disk_st *hd) {
     select_disk(hd);
     cmd_out(hd->my_channel, CMD_IDENTIFY);
-    //semaphore_down(&hd->my_channel->disk_done);
+//    semaphore_down(&hd->my_channel->disk_done);
 
     if (busy_wait(hd)) {
         char id_info[512];
@@ -260,7 +260,7 @@ static void identify_disk(struct disk_st *hd) {
 /* 扫描硬盘hd中地址为ext_lba的扇区中的所有分区 */
 static void partition_scan(struct disk_st *hd, uint32_t ext_lba) {
     struct boot_sector *bs = sys_malloc(sizeof(struct boot_sector));
-    ide_read(hd, ext_lba, bs, 1);
+    ide_read(hd, ext_lba, 1, bs);
     struct partition_st_table_entry *p = bs->partition_table;
 
     for (int i = 0; i < 4; i++) {
