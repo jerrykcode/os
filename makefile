@@ -6,7 +6,7 @@ loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
 OBJS = main.o debug.o init.o timer.o syscall-init.o ide.o stdio.o stdio-kernel.o syscall.o interrupt.o thread.o \
-	process.o memory.o console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o list.o print.o kernel.o \
+	process.o fs.o memory.o console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o list.o print.o kernel.o \
 	switch.o
 
 kernel.bin: $(OBJS)
@@ -22,12 +22,12 @@ switch.o: thread/switch.S
 
 # c
 CFLAGS += -std=c99
-INCLUDE = -I lib/kernel/ -I lib/usr -I lib/ -I kernel/ -I device/ -I thread/ -I usrprog/
+INCLUDE = -I lib/kernel/ -I lib/usr -I lib/ -I kernel/ -I device/ -I thread/ -I usrprog/ -I fs/
 main.o: kernel/main.c lib/kernel/print.h kernel/init.h kernel/memory.h lib/kernel/asm.h thread/thread.h kernel/debug.h \
 	device/keyboard.h device/ioqueue.h usrprog/process.h usrprog/syscall-init.h lib/usr/syscall.h lib/stdio.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 init.o: kernel/init.c kernel/init.h kernel/memory.h kernel/interrupt.h device/timer.h lib/kernel/print.h \
-	device/console.h device/keyboard.h usrprog/tss.h usrprog/syscall-init.h device/ide.h
+	device/console.h device/keyboard.h usrprog/tss.h usrprog/syscall-init.h device/ide.h fs/fs.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 interrupt.o: kernel/interrupt.c kernel/interrupt.h kernel/global.h \
 	lib/stdint.h lib/kernel/print.h  lib/kernel/io.h lib/kernel/asm.h
@@ -76,6 +76,9 @@ stdio-kernel.o: lib/kernel/stdio-kernel.c lib/kernel/stdio-kernel.h lib/stdint.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 ide.o: device/ide.c device/ide.h thread/sync.h lib/stdio.h lib/kernel/stdio-kernel.h kernel/interrupt.h kernel/memory.h \
 	kernel/debug.h lib/string.h kernel/global.h lib/kernel/bitmap.h lib/kernel/io.h device/timer.h lib/stddef.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+fs.o: fs/fs.c fs/fs.h fs/super_block.h fs/inode.h fs/dir.h device/ide.h kernel/memory.h lib/string.h lib/kernel/stdio-kernel.h \
+	kernel/global.h lib/kernel/bitmap.h kernel/debug.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 
