@@ -419,27 +419,34 @@ void sys_free(void *ptr) {
     if (ptr != NULL) {
         struct mem_block *m_block = (struct mem_block *)ptr;
         struct arena *a = block2arena(m_block);
-        lock_acquire(&a->desc->list_lock);
-        // 回收block，加入链表
-        list_push_back(&a->desc->free_mem_list, &m_block->node);
-        if (a->cnt < a->desc->blocks_per_arena - 1) {
-            // arena中仍存在未回收的block, arena不能回收
-            a->cnt++;
-            // 解锁并返回
+        if (a->is_large) {
+            // 大内存
+            pages_free((uint32_t)a, a->cnt);
+        }
+        else {
+            // 小内存
+            lock_acquire(&a->desc->list_lock);
+            // 回收block，加入链表
+            list_push_back(&a->desc->free_mem_list, &m_block->node);
+            if (a->cnt < a->desc->blocks_per_arena - 1) {
+                // arena中仍存在未回收的block, arena不能回收
+                a->cnt++;
+                // 解锁并返回
+                lock_release(&a->desc->list_lock);
+                return;
+            }
+            // arena的所有block均已回收，整个arena可以被回收
+            a->cnt = 0;
+            // 遍历移除arena中的所有block
+            for (int i = 0; i < a->desc->blocks_per_arena; i++) {
+                m_block = arena2block(a, i);
+                ASSERT(list_exist(&a->desc->free_mem_list, &m_block->node));
+                list_remove(&a->desc->free_mem_list, &m_block->node);
+            }
+            // 链表操作完毕，解锁
             lock_release(&a->desc->list_lock);
-            return;
+            // 删除arena这一整页内存
+            pages_free((uint32_t)a, 1);
         }
-        // arena的所有block均已回收，整个arena可以被回收
-        a->cnt = 0;
-        // 遍历移除arena中的所有block
-        for (int i = 0; i < a->desc->blocks_per_arena; i++) {
-            m_block = arena2block(a, i);
-            ASSERT(list_exist(&a->desc->free_mem_list, &m_block->node));
-            list_remove(&a->desc->free_mem_list, &m_block->node);
-        }
-        // 链表操作完毕，解锁
-        lock_release(&a->desc->list_lock);
-        // 删除arena这一整页内存
-        pages_free((uint32_t)a, 1);
     }
 }
