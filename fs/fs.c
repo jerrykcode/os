@@ -125,7 +125,7 @@ static void partition_format(struct partition_st *part) {
 
     /* 将超级块写入part分区的1扇区 */
 
-    ide_write(hd, part->start_lba, 1, &sb);
+    ide_write(hd, part->start_lba + 1, 1, &sb);
     k_printf("  super_block_lba:0x%x\n", part->start_lba + 1);
 
     /* 找出占用扇区最大的元信息，用其尺寸创建存储缓冲区 */
