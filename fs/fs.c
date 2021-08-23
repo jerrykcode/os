@@ -9,8 +9,56 @@
 #include "global.h"
 #include "bitmap.h"
 #include "debug.h"
+#include "list.h"
 
 #define SUPER_BLOCK_MAGIC_FILE_SYS  0x20210819
+
+struct partition_st *cur_part; // 默认情况下操作的分区
+
+extern struct list_st partition_list;
+
+/* list_traversal的回调函数 */
+static bool mount_partition(list_node node, int arg) {
+    char *part_name = (char *)arg;
+    struct partition_st *part = elem2entry(struct partition_st, part_tag, node);
+    if (!strcmp(part_name, part->name)) {
+        // 找到需要被挂载的分区
+        cur_part = part;
+        struct disk_st *hd = cur_part->my_disk;
+
+        // 读入超级块
+        ASSERT(sizeof(struct super_block_st) == SECTOR_SIZE);
+        struct super_block_st *sb = (struct super_block_st *)sys_malloc(SECTOR_SIZE);
+        if (sb == NULL)
+            PANIC("alloc memory failed!");
+
+        ide_read(hd, cur_part->start_lba + 1, 1, sb);
+
+        cur_part->sb = sb;
+
+        // 读入块位图
+        cur_part->block_btmp.btmp_bytes_len = sb->block_btmp_sec_num * SECTOR_SIZE;
+        cur_part->block_btmp.bits = sys_malloc(cur_part->block_btmp.btmp_bytes_len);
+        if (cur_part->block_btmp.bits == NULL)
+            PANIC("alloc memory failed!");
+
+        ide_read(hd, sb->block_btmp_lba, sb->block_btmp_sec_num, cur_part->block_btmp.bits);
+
+        // 读入inode位图
+        cur_part->inode_btmp.btmp_bytes_len = sb->inode_btmp_sec_num * SECTOR_SIZE;
+        cur_part->inode_btmp.bits = sys_malloc(cur_part->inode_btmp.btmp_bytes_len);
+        if (cur_part->inode_btmp.bits == NULL)
+            PANIC("alloc memory failed!");
+
+        ide_read(hd, sb->inode_btmp_lba, sb->inode_btmp_sec_num, cur_part->inode_btmp.bits);
+
+        // 初始化inode链表
+        list_init(&cur_part->open_inodes);
+
+        return true; // 主调函数结束遍历
+    }
+    return false; // 主调函数继续遍历链表
+}
 
 static uint32_t max(uint32_t a, uint32_t b) {
     return a > b ? a : b;
@@ -190,4 +238,9 @@ void filesys_init() {
         }
     }
     sys_free(sb_buf);
+
+    // 确定默认分区
+    char default_part_name[8] = "sdb1";
+    // 挂载分区
+    list_traversal(&partition_list, mount_partition, (int)default_part_name);
 }

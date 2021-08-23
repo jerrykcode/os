@@ -12,7 +12,7 @@ struct partition_st {
     struct disk_st *my_disk;           // 本分区所属的硬盘
     struct list_node_st part_tag;   // 加入链表的标记
     char name[8];
-    struct super_block *sb;         // 本分区的超级块
+    struct super_block_st *sb;         // 本分区的超级块
     struct bitmap block_btmp;       // 块位图
     struct bitmap inode_btmp;       // i结点位图
     struct list_st open_inodes;     // 本分区打开的i结点链表
