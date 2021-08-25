@@ -6,6 +6,11 @@
 #include "bitmap.h"
 #include "list.h"
 
+#define INODE_BTMP_BIT_FREE 0
+#define INODE_BTMP_BIT_USED 1
+#define BLOCK_BTMP_BIT_FREE 0
+#define BLOCK_BTMP_BIT_USED 1
+
 // 分区结构体
 struct partition_st {
     uint32_t start_lba;             // 起始扇区

@@ -66,6 +66,12 @@ void task_init(struct task_st *task, char *name, enum task_status status, uint32
     task->status = status;
     task->priority = priority;
     task->ticks = priority;
+    task->fd_table[0] = 0;
+    task->fd_table[1] = 1;
+    task->fd_table[2] = 2;
+    for (int i = 3; i < MAX_FILES_OPEN_PER_PROC; i++) {
+        task->fd_table[i] = -1;
+    }
     task->page_table = NULL;
     task->stack_magic = STACK_MAGIC;
 }
