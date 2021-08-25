@@ -45,11 +45,11 @@
 uint8_t channel_num;
 struct ide_channel_st channels[2];
 
+struct list_st partition_list; // 分区链表
+
 int32_t ext_lba_base = 0; // 总扩展分区的起始lba, 初始为0
 
 uint8_t p_idx = 0, l_idx = 0; // 主分区和逻辑分区的下标
-
-struct list_st partition_list; // 分区链表
 
 struct partition_st_table_entry {
     uint8_t bootable;   // 是否可引导

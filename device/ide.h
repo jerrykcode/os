@@ -4,6 +4,7 @@
 #include "stdbool.h"
 #include "sync.h"
 #include "bitmap.h"
+#include "list.h"
 
 // 分区结构体
 struct partition_st {
@@ -40,6 +41,8 @@ struct ide_channel_st {
 
 extern uint8_t channel_num;
 extern struct ide_channel_st channels[];
+
+extern struct list_st partition_list; // 分区链表
 
 void ide_init();
 void ide_read(struct disk_st *hd, uint32_t lba, uint32_t sec_num, void *dest);

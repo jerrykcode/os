@@ -15,8 +15,6 @@
 
 struct partition_st *cur_part; // 默认情况下操作的分区
 
-extern struct list_st partition_list;
-
 /* list_traversal的回调函数 */
 static bool mount_partition(list_node node, int arg) {
     char *part_name = (char *)arg;
