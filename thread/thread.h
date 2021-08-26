@@ -9,7 +9,7 @@ typedef uint16_t pid_t;
 typedef void (*thread_func)(void *);
 
 #define STACK_MAGIC 0x20010201
-#define MAX_FILES_PER_PROC 8
+#define MAX_FILES_OPEN_PER_PROC 8
 
 struct list_st threads_all;
 struct list_st threads_ready;
@@ -82,7 +82,7 @@ struct task_st {
     enum task_status status; // 状态
     uint32_t ticks; // 剩余时间片
     uint32_t priority; // 优先级，即初始ticks
-    int32_t fd_table[MAX_FILE_OPEN_PER_PROC]; // 文件描述符数组
+    int32_t fd_table[MAX_FILES_OPEN_PER_PROC]; // 文件描述符数组
     uint32_t *page_table; // 页表指针，线程的page_table为NULL
     struct virtual_addr usrprog_vaddr; // 用户进程的虚拟地址(用户虚拟内存位图)
     struct mem_block_desc usrprog_mem_block_descs[MEM_BLOCK_DESC_NUM]; // 用户进程的mem_block_desc(堆内存块描述符数组)

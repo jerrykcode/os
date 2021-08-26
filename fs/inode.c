@@ -7,6 +7,7 @@
 #include "thread.h"
 #include "debug.h"
 #include "interrupt.h"
+#include "super_block.h"
 
 /* 描述inode位置 */
 struct inode_position {
@@ -52,13 +53,13 @@ void inode_sync(struct partition_st *part, const struct inode_st *inode, void *i
     // 先从硬盘读出分区，将分区中关于inode的部分修改为pure_inode之后再写回硬盘
     // 若inode跨越分区，则需要读写两个分区
     struct disk_st *hd = part->my_disk;
-    uint32_t sec_num = inode_pos->span_two_sectors ? 2 : 1;
+    uint32_t sec_num = inode_pos.span_two_sectors ? 2 : 1;
     // 读取扇区
-    ide_read(hd, inode_pos->sec_lba, sec_num, io_buf);
+    ide_read(hd, inode_pos.sec_lba, sec_num, io_buf);
     // 修改扇区内容中inode_id对应的inode
-    memcpy(io_buf + inode_pos->off_size, &pure_inode, sizeof(struct inode_st));
+    memcpy(io_buf + inode_pos.off_size, &pure_inode, sizeof(struct inode_st));
     // 将扇区写回硬盘
-    ide_write(hd, inode_pos->sec_lba, sec_num, io_buf);
+    ide_write(hd, inode_pos.sec_lba, sec_num, io_buf);
 }
 
 /* list_traversal的回调函数 寻找分区打开的inode中特定inode号的inode */
@@ -86,7 +87,7 @@ struct inode_st *inode_open(struct partition_st *part, uint32_t inode_id) {
     arg.inode_id = inode_id;
     arg.inode_found = NULL;
     // 遍历打开的inode
-    list_traveral(&part->open_inodes, inode_search, (int)&arg);
+    list_traversal(&part->open_inodes, inode_search, (int)&arg);
     if (arg.inode_found != NULL) {// 找到了
         arg.inode_found->i_open_cnts++;
         return arg.inode_found;
@@ -129,7 +130,7 @@ struct inode_st *inode_open(struct partition_st *part, uint32_t inode_id) {
     inode_found->i_open_cnts = 1;
 
     // 加入打开的inode链表
-    list_push_back(&part->open_inodes, inode_found->inode_tag);
+    list_push_back(&part->open_inodes, &inode_found->inode_tag);
 
     return inode_found;
 }
@@ -137,7 +138,7 @@ struct inode_st *inode_open(struct partition_st *part, uint32_t inode_id) {
 /* 关闭inode或减少inode打开次数 */
 void inode_close(struct partition_st *part, struct inode_st *inode) {
     enum intr_status old_status = intr_disable();
-    if (--inode->i_open_cnt == 0) {
+    if (--inode->i_open_cnts == 0) {
         list_remove(&part->open_inodes, inode);
         // inode使用内核内存
         // 释放内存时，需要将页表临时设置为NULL

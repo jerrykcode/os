@@ -1,5 +1,8 @@
 #include "file.h"
+#include "fs.h"
+#include "stddef.h"
 #include "stdio-kernel.h"
+#include "super_block.h"
 #include "thread.h"
 
 struct file file_table[MAX_FILE_OPEN]; // 文件表
@@ -18,7 +21,7 @@ int32_t get_free_slot_in_global() {
  * 成功返回该下标，失败 返回-1 */
 int32_t pcb_fd_install(int32_t global_fd_idx) {
     struct task_st *cur = current_thread();
-    for (int i = 0; i < MAX_FILE_OPEN_PER_PROC; i++)
+    for (int i = 0; i < MAX_FILES_OPEN_PER_PROC; i++)
         if (cur->fd_table[i] == -1) {
             cur->fd_table[i] = global_fd_idx;
             return i;
@@ -43,7 +46,7 @@ int32_t block_bitmap_alloc(struct partition_st *part) {
         return -1;
 
     bitmap_setbit(&part->block_btmp, bit_idx, BLOCK_BTMP_BIT_USED);
-    return part->data_start_lba + bit_idx;
+    return part->sb->data_start_lba + bit_idx;
 }
 
 /* 将内存中bitmap第bit_idx位所在的扇区同步到硬盘 */
@@ -54,11 +57,11 @@ void bitmap_sync(struct partition_st *part, uint32_t bit_idx, uint8_t btmp_type)
     uint8_t *btmp_off;
     switch (btmp_type) {
         case INODE_BTMP:
-            sec_lba = part->inode_btmp_lba + off_sec;
+            sec_lba = part->sb->inode_btmp_lba + off_sec;
             btmp_off = part->inode_btmp.bits + off_size;
             break;
         case BLOCK_BTMP:
-            sec_lba = part->block_btmp_lba + off_sec;
+            sec_lba = part->sb->block_btmp_lba + off_sec;
             btmp_off = part->block_btmp.bits + off_size;
             break;
         default:

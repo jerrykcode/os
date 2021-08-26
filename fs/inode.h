@@ -3,6 +3,7 @@
 
 #include "stdint.h"
 #include "stddef.h"
+#include "ide.h"
 #include "list.h"
 
 /* inode结构 */

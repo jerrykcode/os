@@ -5,8 +5,8 @@ mbr.bin: boot/mbr.S
 loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
-OBJS = main.o debug.o init.o timer.o syscall-init.o ide.o stdio.o stdio-kernel.o syscall.o interrupt.o thread.o \
-	process.o fs.o memory.o console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o list.o print.o kernel.o \
+OBJS = main.o debug.o init.o timer.o syscall-init.o ide.o stdio.o stdio-kernel.o syscall.o interrupt.o thread.o process.o\
+	fs.o file.o inode.o memory.o console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o list.o print.o kernel.o \
 	switch.o
 
 kernel.bin: $(OBJS)
@@ -79,6 +79,11 @@ ide.o: device/ide.c device/ide.h thread/sync.h lib/stdio.h lib/kernel/stdio-kern
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 fs.o: fs/fs.c fs/fs.h fs/super_block.h fs/inode.h fs/dir.h device/ide.h kernel/memory.h lib/string.h lib/kernel/stdio-kernel.h \
 	kernel/global.h lib/kernel/bitmap.h kernel/debug.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+file.o: fs/file.c fs/file.h fs/fs.h fs/super_block.h device/ide.h lib/kernel/stdio-kernel.h lib/stdint.h lib/stddef.h thread/thread.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+inode.o: fs/inode.c fs/inode.h lib/stdint.h lib/stddef.h lib/kernel/list.h fs/fs.h device/ide.h thread/thread.h kernel/interrupt.h\
+	kernel/global.h kernel/debug.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 
