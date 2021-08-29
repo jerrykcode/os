@@ -15,6 +15,8 @@ enum file_types {
     FT_DIRECTORY // 目录文件
 };
 
+extern struct partition_st *cur_part;
+
 void filesys_init();
 
 #endif

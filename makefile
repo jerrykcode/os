@@ -6,7 +6,7 @@ loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
 OBJS = main.o debug.o init.o timer.o syscall-init.o ide.o stdio.o stdio-kernel.o syscall.o interrupt.o thread.o process.o\
-	fs.o file.o inode.o memory.o console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o list.o print.o kernel.o \
+	fs.o file.o inode.o dir.o memory.o console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o list.o print.o kernel.o \
 	switch.o
 
 kernel.bin: $(OBJS)
@@ -84,6 +84,9 @@ file.o: fs/file.c fs/file.h fs/fs.h fs/super_block.h device/ide.h lib/kernel/std
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 inode.o: fs/inode.c fs/inode.h lib/stdint.h lib/stddef.h lib/kernel/list.h fs/fs.h device/ide.h thread/thread.h kernel/interrupt.h\
 	kernel/global.h kernel/debug.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+dir.o: fs/dir.c fs/dir.h lib/stdint.h lib/stddef.h fs/inode.h fs/fs.h device/ide.h fs/super_block.h kernel/memory.h\
+	lib/string.h kernel/debug.h lib/kernel/stdio-kernel.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 
