@@ -7,6 +7,7 @@
 #define BITS_PER_SECTOR     4096
 #define SECTOR_SIZE         512
 #define BLOCK_SIZE          SECTOR_SIZE // 这里1块即1扇区
+#define MAX_PATH_LEN        512
 
 /* 文件类型 */
 enum file_types {
@@ -17,6 +18,7 @@ enum file_types {
 
 extern struct partition_st *cur_part;
 
+int32_t path_depth(const char *pathname);
 void filesys_init();
 
 #endif

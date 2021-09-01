@@ -202,6 +202,108 @@ static void partition_init(struct disk_st *hd, struct partition_st *part, struct
     }
 }
 
+/* 将pathname的最顶层目录名字解析出来，并存储到top_name中，
+   返回pathname的下一层 
+   eg: pathname指向"/a/b/c", 执行完成后top_name存储"a", 返回"/b/c" */
+static char *path_parse(const char *pathname, char *top_name) {
+    if (pathname == NULL)
+        return NULL;
+
+    if (pathname[0] == '\0')
+        return pathname;
+
+    ASSERT(top_name != NULL);
+
+    char *p = pathname;
+    while (p[0] == '/') {
+        p++;
+    }
+
+    while (p[0] != '\0' && p[0] != '/') {
+        *(top_name++) = *(p++);
+    }
+
+    *top_name = '\0';
+    return pathname;
+}
+
+/* 计算路径深度 */
+int32_t path_depth(const char *pathname) {
+    char *p = pathname;
+    char name_buf[MAX_FILE_NAME_LEN];
+    int depth = 0;
+    while (p && p[0]) {
+        p = path_parse(p, name_buf);
+        if (name_buf[0] == '\0')
+            break;
+        depth++;
+    }
+    return depth;
+}
+
+struct path_search_record {
+    char path[MAX_PATH_LEN];
+    struct dir_st *parent_dir;
+    enum file_types file_type;
+};
+
+/* 搜索路径pathname，若存在则返回对应文件的inode号，若不存在则返回-1 */
+static int search_file(const char *pathname, struct path_search_record *search_record) {
+    ASSERT(search_record != NULL);
+    if (pathname == NULL)
+        return -1;
+
+    if (pathname[0] != '/') {
+        k_printf("ERROR search_file: ");
+        return -1;
+    }
+
+    // 初始化search_record
+    memset(search_record->path, 0, MAX_PATH_LEN);
+    search_record->path[0] = '/';
+    search_record->parent_dir = &root_dir;
+    search_record->file_type = FT_DIRECTORY;
+
+    struct dir_st *parent_dir = &root_dir;
+    char name_buf[MAX_FILE_NAME_LEN];
+    struct dir_entry_st entry;
+    entry.inode_id = 0; // 初始化
+
+    char *p = pathname;
+    while (p[0]) {
+        // 解析出一层目录
+        p = path_parse(p, name_buf);
+        if (name_buf[0] == '\0')
+            break;
+
+        // 增加搜索路径
+        if (strlen(search_record->path) > 1) // == 1则在初始化时已经有'/'了
+            strcat(search_record->path, "/");
+        strcat(search_record->path, name_buf);
+        if (search_record->parent_dir != &root_dir)
+            dir_close(search_record->parent_dir);
+        search_record->parent_dir = parent_dir;
+
+        // 判断parent_dir中是否存在名为name_buf的目录项
+        if (!dir_search(&cur_part, parent_dir, name_buf, &entry)) {
+            search_record->file_type = FT_UNKNOWN;            
+            return -1;
+        }
+
+        search_record->file_type = entry.f_type;
+        if (search_record->file_type == FT_REGULAR) {
+            return entry.inode_id;
+        }
+
+        parent_dir = dir_open(&cur_part, entry.inode_id);
+    }
+
+    if (parent_dir != &root_dir && parent_dir != search_record->parent_dir)
+        dir_close(parent_dir);
+
+    return entry.inode_id;
+}
+
 void filesys_init() {
     struct ide_channel_st *channel;
     struct disk_st *hd;
