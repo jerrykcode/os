@@ -168,6 +168,7 @@ bool dir_sync_entry(struct dir_st *dir, struct dir_entry_st *entry, void *io_buf
                 if (block_lba == -1) {
                     k_printf("ERROR dir_sync_entry: alloc bitmap failed!!!");
                     inode->i_sectors[12] = 0; // 复原
+                    bitmap_setbit(&cur_part->block_btmp, btmp_changed_bits_idx[0], BLOCK_BTMP_BIT_FREE);
                     goto END;
                 }
                 btmp_changed_bits_idx[1] = block_lba - cur_part->sb->data_start_lba; // 记录
