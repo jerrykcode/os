@@ -3,6 +3,7 @@
 
 #include "stdint.h"
 #include "ide.h"
+#include "dir.h"
 
 /* 文件结构 */
 struct file {
@@ -32,4 +33,5 @@ int32_t pcb_fd_install(int32_t global_fd_idx);
 int32_t inode_bitmap_alloc(struct partition_st *part);
 int32_t block_bitmap_alloc(struct partition_st *part);
 void bitmap_sync(struct partition_st *part, uint32_t bit_idx, uint8_t btmp_type);
+int32_t file_create(struct dir_st *parent_dir, char *filename, uint8_t flag);
 #endif

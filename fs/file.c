@@ -1,9 +1,11 @@
 #include "file.h"
 #include "fs.h"
+#include "inode.h"
 #include "stddef.h"
 #include "stdio-kernel.h"
 #include "super_block.h"
 #include "thread.h"
+#include "list.h"
 
 struct file file_table[MAX_FILE_OPEN]; // 文件表
 
@@ -68,4 +70,86 @@ void bitmap_sync(struct partition_st *part, uint32_t bit_idx, uint8_t btmp_type)
             break;
     }
     ide_write(part->my_disk, sec_lba, 1, btmp_off);
+}
+
+/* 在parent_dir目录下创建普通文件(非目录)，成功返回描述符，失败返回-1 */
+int32_t file_create(struct dir_st *parent_dir, char *filename, uint8_t flag) {
+    void *io_buf = sys_malloc(1024);
+    if (io_buf == NULL) {
+        k_printf("ERROR file_create: alloc memory failed!!!\n");
+        return -1;
+    }
+
+    uint8_t roll_back_step = 0; // 用于失败时回滚各资源状态
+
+    // 为新文件分配inode号
+    int32_t inode_id = inode_bitmap_alloc(cur_part);
+    if (inode_id == -1) {
+        k_printf("ERROR file_create: alloc inode failed!!!\n");
+        sys_free(io_buf);
+        return -1;
+    }
+
+    // 在内存中创建inode并初始化
+    struct inode_st *new_file_inode = (struct inode_st *)sys_malloc(sizeof(struct inode_st));
+    if (new_file_inode == NULL) {
+        k_printf("ERROR file_create: alloc memory failed!!!\n");
+        roll_back_step = 1;
+        goto ROLL_BACK;
+    }
+
+    inode_init(inode_id, new_file_inode);
+
+    // 从文件表中获取一个空闲位
+    int32_t fd = get_free_slot_in_global();
+    if (fd == -1) {
+        roll_back_step = 2;
+        goto ROLL_BACK;
+    }
+
+    file_table[fd].fd_pos = 0;
+    file_table[fd].fd_flag = flag;
+    file_table[fd].fd_inode = new_file_inode;
+
+    // 创建目录项
+    struct dir_entry_st entry;
+    memset(&entry, 0, sizeof(struct dir_entry_st));
+    dir_init_entry(&entry, filename, inode_id, FT_REGULAR);
+
+    /* 内存数据同步到硬盘 */
+
+    // 目录项写入parent_dir目录
+    if (!dir_sync_entry(parent_dir, &entry, io_buf)) {
+        k_printf("ERROR file_create: dir_sync_entry failed!!!\n");
+        roll_back_step = 3;
+        goto ROLL_BACK;
+    }
+
+    // inode写入硬盘
+    memset(io_buf, 0, 1024);
+    inode_sync(cur_part, new_file_inode, io_buf);
+
+    // inode位图同步到硬盘
+    bitmap_sync(cur_part, inode_id, INODE_BTMP);
+
+    /* new_file_inode加入open_inodes链表 */
+    list_push_back(&cur_part->open_inodes, &new_file_inode->inode_tag);
+    new_file_inode->i_open_cnts = 1;
+
+    sys_free(io_buf);
+    return pcb_fd_install(fd);
+
+ROLL_BACK:
+    switch (roll_back_step) {
+        case 3:
+            memset(&file_table[fd], 0, sizeof(struct file));
+            // 这里不要break, 对于case 3 也需要执行case 2 和 case 1 的内容 
+        case 2:
+            sys_free(new_file_inode);
+        case 1:
+            bitmap_setbit(&cur_part->inode_btmp, inode_id, INODE_BTMP_BIT_FREE);
+            break;
+    }
+    sys_free(io_buf);
+    return -1;
 }

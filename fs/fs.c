@@ -285,7 +285,7 @@ static int search_file(const char *pathname, struct path_search_record *search_r
         search_record->parent_dir = parent_dir;
 
         // 判断parent_dir中是否存在名为name_buf的目录项
-        if (!dir_search(&cur_part, parent_dir, name_buf, &entry)) {
+        if (!dir_search(cur_part, parent_dir, name_buf, &entry)) {
             search_record->file_type = FT_UNKNOWN;            
             return -1;
         }
@@ -295,7 +295,7 @@ static int search_file(const char *pathname, struct path_search_record *search_r
             return entry.inode_id;
         }
 
-        parent_dir = dir_open(&cur_part, entry.inode_id);
+        parent_dir = dir_open(cur_part, entry.inode_id);
     }
 
     if (parent_dir != &root_dir && parent_dir != search_record->parent_dir)
