@@ -304,6 +304,83 @@ static int search_file(const char *pathname, struct path_search_record *search_r
     return entry.inode_id;
 }
 
+/* 打开或创建路径为pathname的普通文件(非目录)，成功返回描述符，失败返回-1 */
+int32_t sys_open(const char *pathname, uint8_t flags) {
+    ASSERT(pathname != NULL);
+    uint32_t pathname_len = strlen(pathname);
+    ASSERT(pathname_len >= 1);
+    if (pathname[strlen(pathname) - 1] == '/') {
+        k_printf("ERROR sys_open: can not open a directory!!!\n");
+        return -1;
+    }
+
+    ASSERT(flags <= 7); // 7 ==>二进制 111
+
+    int32_t fd = -1;    // 文件描述符，初始化位-1，默认找不到
+
+    struct path_search_record *search_record = (struct path_search_record *)sys_malloc(sizeof(struct path_search_record));
+    if (search_record == NULL) {
+        k_printf("ERROR sys_open: alloc memory failed!!!\n");
+        return -1;
+    }
+    memset(search_record, 0, sizeof(struct path_search_record));
+
+    // 记录目录深度
+    uint32_t pathname_depth = path_depth(pathname);
+
+    // 搜索文件
+    int inode_id = search_file(pathname, search_record);
+    bool found = (inode_id != -1);
+    // 检查pathname路径上是否有中间目录不存在
+    uint32_t searched_depth = path_depth(search_record->path);
+    if (pathname_depth != searched_depth) {
+        k_printf("ERROR sys_open: cannot access %s:\n   subpath %s isn`t exist!!!\n", pathname, search_record->path);
+        dir_close(search_record->parent_dir);
+        sys_free(search_record);
+        return -1;
+    }
+
+    if (search_record->file_type == FT_DIRECTORY) {
+        k_printf("cannot open a directory with open(), use opendir() instead");
+        dir_close(search_record->parent_dir);
+        sys_free(search_record);
+        return -1;
+    }
+
+    bool create = flags & O_CREATE;
+
+    if (found && create) { // 要创建的文件已存在
+        k_printf("%s has already exist!\n", pathname);
+        dir_close(search_record->parent_dir);
+        sys_free(search_record);
+        return -1;
+    }
+
+    if (!found && !create) { // 要打开的文件不存在
+        k_printf("%s dosn`t exist!\n", pathname);
+        dir_close(search_record->parent_dir);
+        sys_free(search_record);
+        return -1;
+    }
+
+    // 到这里只有两种情况:
+    // a) found && !create 打开已存在的文件
+    // b) !found && create 创建不存在的文件
+    if (found) { // found && !create
+        // 以后实现...
+        dir_close(search_record->parent_dir);
+        sys_free(search_record);
+    }
+    else { // !found && create
+        k_printf("creating file...\n");
+        fd = file_create(search_record->parent_dir, strrchr(pathname, '/'), flags);
+        dir_close(search_record->parent_dir);
+        sys_free(search_record);
+    }
+
+    return fd;
+}
+
 void filesys_init() {
     struct ide_channel_st *channel;
     struct disk_st *hd;

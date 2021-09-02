@@ -16,9 +16,18 @@ enum file_types {
     FT_DIRECTORY // 目录文件
 };
 
+/* 打开文件的选项 */
+enum oflags {
+    O_RONLY     /* 000 */,
+    O_WONLY     /* 001 */,
+    O_RW        /* 010 */,
+    O_CREATE = 4/* 100 */
+};
+
 extern struct partition_st *cur_part;
 
 int32_t path_depth(const char *pathname);
+int32_t sys_open(const char *pathname, uint8_t flags);
 void filesys_init();
 
 #endif
