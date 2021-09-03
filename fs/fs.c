@@ -4,6 +4,7 @@
 #include "dir.h"
 #include "file.h"
 #include "ide.h"
+#include "thread.h"
 #include "memory.h"
 #include "string.h"
 #include "stdio-kernel.h"
@@ -368,7 +369,8 @@ int32_t sys_open(const char *pathname, uint8_t flags) {
     // a) found && !create 打开已存在的文件
     // b) !found && create 创建不存在的文件
     if (found) { // found && !create
-        // 以后实现...
+        fd = file_open(inode_id, flags);
+        // 若file_open失败返回-1，存储在fd中，本函数最终亦返回-1
         dir_close(search_record->parent_dir);
         sys_free(search_record);
     }
@@ -380,6 +382,22 @@ int32_t sys_open(const char *pathname, uint8_t flags) {
     }
 
     return fd;
+}
+
+static int32_t fd_local2global(int32_t local_fd) {
+    if (local_fd < 0)
+        return -1;
+    return current_thread()->fd_table[local_fd];    
+}
+
+int32_t sys_close(int32_t fd) {
+    if (fd < stderr_fd) {
+        return -1;
+    }
+    int32_t global_fd = fd_local2global(fd);
+    int32_t result = file_close(&file_table[global_fd]);
+    current_thread()->fd_table[fd] = -1;
+    return result;
 }
 
 void filesys_init() {

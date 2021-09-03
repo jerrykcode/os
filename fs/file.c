@@ -5,6 +5,7 @@
 #include "stdio-kernel.h"
 #include "super_block.h"
 #include "thread.h"
+#include "interrupt.h"
 #include "list.h"
 
 struct file file_table[MAX_FILE_OPEN]; // 文件表
@@ -152,4 +153,44 @@ ROLL_BACK:
     }
     sys_free(io_buf);
     return -1;
+}
+
+/* 打开文件 */
+int32_t file_open(uint32_t inode_id, uint8_t flag) {
+    int32_t fd = get_free_slot_in_global();
+    if (fd == -1) {
+        return -1;
+    }
+
+    file_table[fd].fd_pos = 0;
+    file_table[fd].fd_flag = flag;
+    file_table[fd].fd_inode = inode_open(cur_part, inode_id); 
+
+    if (flag & O_WONLY || flag & O_RW) { // 文件可写
+        enum intr_status old_status = intr_disable(); // 关闭中断
+        if ( !file_table[fd].fd_inode->write_deny) { // 若当前没有其他进程写该文件
+            file_table[fd].fd_inode->write_deny = true;
+            intr_set_status(old_status); // 恢复中断状态
+        }
+        else { // 当前已有进程在写该文件
+            intr_set_status(old_status);
+            k_printf("file can`t be write now, try again later!!!\n");
+            inode_close(cur_part, file_table[fd].fd_inode);
+            file_table[fd].fd_inode = NULL;
+            return -1;
+        }
+    }
+
+    return pcb_fd_install(fd);
+}
+
+/* 关闭文件 */
+int32_t file_close(struct file *file) {
+    if (file == NULL)
+        return -1;
+    if (file->fd_inode == NULL)
+        return -1;
+    file->fd_inode->write_deny = false;
+    inode_close(cur_part, file->fd_inode);
+    return 0;
 }

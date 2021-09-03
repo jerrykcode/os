@@ -59,7 +59,10 @@ int main() {
     thread_start("thread_B", 31, thread_2, " thread B ");
     thread_start("thread_C", 31, thread_2, " thread C ");
 
-    sys_open("/file0", O_CREATE);
+    int32_t fd = sys_open("/file0", O_CREATE);
+    printf("    open file with fd:%d\n", fd);
+    sys_close(fd);
+    printf("    close file with fd:%d\n", fd);
 
     while (1) {
         //console_put_str("Main ");

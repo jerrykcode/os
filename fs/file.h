@@ -34,4 +34,6 @@ int32_t inode_bitmap_alloc(struct partition_st *part);
 int32_t block_bitmap_alloc(struct partition_st *part);
 void bitmap_sync(struct partition_st *part, uint32_t bit_idx, uint8_t btmp_type);
 int32_t file_create(struct dir_st *parent_dir, char *filename, uint8_t flag);
+int32_t file_open(uint32_t inode_id, uint8_t flag);
+int32_t file_close(struct file *file);
 #endif
