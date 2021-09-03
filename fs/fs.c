@@ -2,6 +2,7 @@
 #include "super_block.h"
 #include "inode.h"
 #include "dir.h"
+#include "file.h"
 #include "ide.h"
 #include "memory.h"
 #include "string.h"
@@ -420,4 +421,12 @@ void filesys_init() {
     char default_part_name[8] = "sdb1";
     // 挂载分区
     list_traversal(&partition_list, mount_partition, (int)default_part_name);
+
+    // 打开当前分区的根目录
+    open_root_dir(cur_part);
+
+    // 初始化文件表
+    for (i = 0; i < MAX_FILE_OPEN; i++) {
+        file_table[i].fd_inode = NULL;
+    }
 }
