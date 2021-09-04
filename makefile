@@ -21,7 +21,7 @@ switch.o: thread/switch.S
 	nasm -f elf -o $@ $<
 
 # c
-CFLAGS += -std=c99
+CFLAGS += -std=c99 -fno-stack-protector
 INCLUDE = -I lib/kernel/ -I lib/usr -I lib/ -I kernel/ -I device/ -I thread/ -I usrprog/ -I fs/
 main.o: kernel/main.c lib/kernel/print.h kernel/init.h kernel/memory.h lib/kernel/asm.h thread/thread.h kernel/debug.h \
 	device/keyboard.h device/ioqueue.h usrprog/process.h usrprog/syscall-init.h lib/usr/syscall.h lib/stdio.h
