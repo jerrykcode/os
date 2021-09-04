@@ -226,7 +226,7 @@ static char *path_parse(const char *pathname, char *top_name) {
     }
 
     *top_name = '\0';
-    return pathname;
+    return p;
 }
 
 /* 计算路径深度 */
@@ -376,7 +376,7 @@ int32_t sys_open(const char *pathname, uint8_t flags) {
     }
     else { // !found && create
         k_printf("creating file...\n");
-        fd = file_create(search_record->parent_dir, strrchr(pathname, '/'), flags);
+        fd = file_create(search_record->parent_dir, strrchr(pathname, '/') + 1, flags);
         dir_close(search_record->parent_dir);
         sys_free(search_record);
     }
