@@ -7,6 +7,7 @@
 #include "string.h"
 #include "memory.h"
 #include "timer.h"
+#include "fs.h"
 
 typedef void *syscall;
 
@@ -28,9 +29,4 @@ void syscall_init() {
 */
 uint32_t sys_getpid() {
     return current_thread()->pid;
-}
-
-uint32_t sys_write(char *str) {
-    console_put_str(str);
-    return strlen(str);
 }

@@ -1,4 +1,5 @@
 #include "fs.h"
+#include "file.h"
 #include "super_block.h"
 #include "inode.h"
 #include "dir.h"
@@ -398,6 +399,31 @@ int32_t sys_close(int32_t fd) {
     int32_t result = file_close(&file_table[global_fd]);
     current_thread()->fd_table[fd] = -1;
     return result;
+}
+
+/* */
+int32_t sys_write(int32_t fd, const void *buf, uint32_t count) {
+    if (fd < 0) {
+        k_printf("sys_write: fd: %d error\n", fd);
+        return -1;
+    }
+
+    if (fd == stdout_fd) {
+        char tmp_buf[1024] = {0};
+        memcpy(tmp_buf, buf, count);
+        console_put_str(tmp_buf);
+        return count;
+    }
+
+    int32_t g_fd = fd_local2global(fd);
+    struct file *f = &file_table[g_fd];
+    if (f->fd_flag & O_WONLY || f->fd_flags & O_RW) {
+        return file_write(f, buf, count);
+    }
+    else {
+        k_printf("sys_write: not allowed to write file without flag O_WONLY or O_RW\n");
+        return -1;
+    }
 }
 
 void filesys_init() {

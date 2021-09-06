@@ -7,6 +7,7 @@
 #include "thread.h"
 #include "interrupt.h"
 #include "list.h"
+#include "debug.h"
 
 struct file file_table[MAX_FILE_OPEN]; // 文件表
 
@@ -193,4 +194,160 @@ int32_t file_close(struct file *file) {
     file->fd_inode->write_deny = false;
     inode_close(cur_part, file->fd_inode);
     return 0;
+}
+
+/* 将内存地址src处起始的count字节数据写入文件file末尾 成功返回写入字节数量，失败返回-1 */
+int32_t file_write(struct file *file, const void *src, uint32_t count) {
+    if (count == 0) {
+        return 0;
+    }
+    struct disk_st *disk = cur_part->my_disk;
+    struct inode_st *fd_inode = file->fd_inode;
+    if (fd_inode->i_size + count > 140 * BLOCK_SIZE) {
+        k_printf("ERROR file_write: exceed max file size %d bytes, write file failed!!!\n", 140 * BLOCK_SIZE);
+        return -1;
+    }
+
+    void *io_buf = sys_malloc(1024); // 1024: 2*SECTOR_SIZE inode_sync需要两扇区大小的内存
+    if (io_buf == NULL) {
+        k_printf("ERROR file_write: alloc memory failed!!!\n");
+        return -1;
+    }
+
+    uint32_t *all_blocks = (uint32_t *)sys_malloc(140 * sizeof(uint32_t)); // 存储块的lba地址
+    if (all_blocks == NULL) {
+        k_printf("ERROR file_write: alloc memory failed!!!\n");
+        return -1;
+    }
+
+    // 当前已使用的块数
+    uint32_t file_has_used_blocks = fd_inode->i_size / BLOCK_SIZE;
+    if (fd_inode->i_size % BLOCK_SIZE) { 
+        // 已使用的最后一块中有剩余空间可以使用
+        // 将这一块存入all_blocks中
+        if (file_has_used_blocks < 12)
+            all_blocks[file_has_used_blocks] = fd_inode->i_sectors[file_has_used_blocks];
+        else {
+            // 间接块需要读取i_sectors[12]
+            ASSERT(fd_inode->i_sectors[12] != 0);
+            ide_read(disk, fd_inode->i_sectors[12], 1, all_blocks + 12); 
+            // 这样all_blocks中还存储了最后一块之前的一些块，但是没关系
+        }
+        file_has_used_blocks++;
+    }
+    // 写入数据之后将会使用的块数
+    uint32_t file_will_use_blocks = (fd_inode->i_size + count) / BLOCK_SIZE;
+    if ((fd_inode->i_size + count) % BLOCK_SIZE)
+        file_will_use_blocks++;
+
+    uint32_t block_lba;
+    uint32_t block_btmp_idx;
+    // 申请需要使用的块
+    for (int i = file_has_used_blocks; i < file_will_use_blocks; i++) {
+        if (i < 12) {
+            // 直接块
+	    ASSERT(fd_inode->i_sectors[i] == 0);
+    	    block_lba = block_bitmap_alloc(cur_part);
+	    if (block_lba == -1) {
+	        k_printf("ERROR file_write: block bitmap alloc failed!!!\n");
+	        sys_free(io_buf);
+	        sys_free(all_blocks);
+	        return -1;
+	    }
+            // 将bitmap同步至硬盘
+            block_btmp_idx = block_lba - cur_part->sb->data_start_lba;
+            ASSERT(block_btmp_idx != 0);
+            bitmap_sync(cur_part, block_btmp_idx, BLOCK_BTMP);
+            // 记录到all_blocks
+	    all_blocks[i] = fd_inode->i_sectors[i] = block_lba;
+        }
+        else if (i == 12) {
+            // 需要先申请一块作为i_sectors[12]
+            // 再申请间接块
+            ASSERT(fd_inode->i_sectors[12] == 0);
+            block_lba = block_bitmap_alloc(cur_part);
+            if (block_lba == -1) {
+                k_printf("ERROR file_write: block bitmap alloc failed!!!\n");
+	        sys_free(io_buf);
+	        sys_free(all_blocks);
+	        return -1;
+            }
+            block_btmp_idx = block_lba - cur_part->sb->data_start_lba;
+            ASSERT(block_btmp_idx != 0);
+            bitmap_sync(cur_part, block_btmp_idx, BLOCK_BTMP);
+            fd_inode->i_sectors[12] = block_lba;
+
+            // 申请间接块
+            block_lba = block_bitmap_alloc(cur_part);
+            if (block_lba == -1) {
+                k_printf("ERROR file_write: block bitmap alloc failed!!!\n");
+	        sys_free(io_buf);
+	        sys_free(all_blocks);
+	        return -1;
+            }
+            block_btmp_idx = block_lba - cur_part->sb->data_start_lba;
+            ASSERT(block_btmp_idx != 0);
+            bitmap_sync(cur_part, block_btmp_idx, BLOCK_BTMP);
+            // 记录到all_blocks
+            all_blocks[12] = block_lba;
+        }
+        else { // i > 12
+            // 申请间接块，与 i == 12 的情况不同，这里i_sectors[12]已经有值了
+            ASSERT(fd_inode->i_sectors[12] != 0);
+            block_lba = block_bitmap_alloc(cur_part);
+            if (block_lba == -1) {
+                k_printf("ERROR file_write: block bitmap alloc failed!!!\n");
+                sys_free(io_buf);
+                sys_free(all_blocks);
+                return -1;
+            }
+            block_btmp_idx = block_lba - cur_part->sb->data_start_lba;
+            ASSERT(block_btmp_idx != 0);
+            bitmap_sync(cur_part, block_btmp_idx, BLOCK_BTMP);
+            // 记录到all_blocks
+            all_blocks[i] = block_lba;
+        }
+    } // for
+    // 如果申请了间接块，需要将这些间接块写入i_sectors[12]所指向的扇区
+    if (file_has_used_blocks < file_will_use_blocks && file_will_use_blocks >= 12) {
+        ide_write(disk, fd_inode->i_sectors[12], 1, all_blocks + 12);
+    }
+
+    // 以下开始向all_blocks中记录的这些块写入内容
+    void *io_src = src;
+    uint32_t bytes_left = count;
+
+    uint32_t io_size;
+    uint32_t off = fd_inode->i_size % BLOCK_SIZE;
+    if (off) {
+        // 如果已使用的最后一块中有剩余空间可以使用
+        ide_read(disk, all_blocks[file_has_used_blocks - 1], 1, io_buf);
+        io_size = BLOCK_SIZE - off;
+        memcpy(io_buf + off, io_src, io_size);
+        ide_write(disk, all_blocks[file_has_used_blocks - 1], 1, io_buf);
+        io_src += io_size;
+        bytes_left -= io_size;
+    }
+
+    // 写入all_blocks记录的块
+    for (int i = file_has_used_blocks; i < file_will_use_blocks; i++) {
+        if (BLOCK_SIZE <= bytes_left)
+            io_size = BLOCK_SIZE;
+        else {
+            io_size = bytes_left;
+            memset(io_buf, 0, BLOCK_SIZE);
+        }
+        memcpy(io_buf, io_src, io_size);
+        ide_write(disk, all_blocks[i], 1, io_buf);
+        io_src += io_size; 
+        bytes_left -= io_size;
+    }
+    sys_free(all_blocks);
+
+    ASSERT(bytes_left == 0);
+    fd_inode->i_size += count;
+    inode_sync(cur_part, fd_inode, io_buf);
+
+    sys_free(io_buf);
+    return count;
 }

@@ -3,6 +3,7 @@
 #include "syscall.h"
 #include "string.h"
 #include "console.h"
+#include "file.h"
 
 #define va_start(ap, v) ap = (va_list)&v    /* 将ap指向栈中首个固定参数 */
 #define va_arg(ap, T) *((T *)(ap += 4))     /* 将ap指向栈中`下一个参数，并返回其值 */
@@ -14,7 +15,7 @@ uint32_t printf(const char *str, ...) {
     va_start(ap, str);
     vsprintf(buf, str, ap);
     va_end(ap);
-    return write(buf);
+    return write(stdout_fd, buf, strlen(buf));
 }
 
 uint32_t sprintf(char *str, const char *format, ...) {

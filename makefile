@@ -68,9 +68,9 @@ process.o: usrprog/process.c usrprog/process.h kernel/memory.h kernel/global.h l
 syscall.o: lib/usr/syscall.c lib/usr/syscall.h lib/stdint.h lib/kernel/asm.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 syscall-init.o: usrprog/syscall-init.c usrprog/syscall-init.h lib/usr/syscall.h lib/stdint.h lib/kernel/print.h thread/thread.h \
-	device/console.h lib/string.h kernel/memory.h device/timer.h
+	device/console.h lib/string.h kernel/memory.h device/timer.h fs/fs.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
-stdio.o: lib/stdio.c lib/stdio.h lib/stddef.h lib/usr/syscall.h lib/string.h
+stdio.o: lib/stdio.c lib/stdio.h lib/stddef.h lib/usr/syscall.h lib/string.h fs/file.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 stdio-kernel.o: lib/kernel/stdio-kernel.c lib/kernel/stdio-kernel.h lib/stdint.h lib/stdio.h lib/stddef.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
@@ -78,7 +78,7 @@ ide.o: device/ide.c device/ide.h thread/sync.h lib/stdio.h lib/kernel/stdio-kern
 	kernel/debug.h lib/string.h kernel/global.h lib/kernel/bitmap.h lib/kernel/io.h device/timer.h lib/stddef.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 fs.o: fs/fs.c fs/fs.h fs/super_block.h fs/inode.h fs/dir.h device/ide.h kernel/memory.h lib/string.h lib/kernel/stdio-kernel.h \
-	kernel/global.h lib/kernel/bitmap.h kernel/debug.h thread/thread.h
+	kernel/global.h lib/kernel/bitmap.h kernel/debug.h thread/thread.h fs/file.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 file.o: fs/file.c fs/file.h fs/fs.h fs/dir.h fs/inode.h fs/super_block.h device/ide.h lib/kernel/stdio-kernel.h lib/stdint.h \
 	lib/stddef.h lib/kernel/list.h thread/thread.h kernel/interrupt.h
