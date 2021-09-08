@@ -351,3 +351,76 @@ int32_t file_write(struct file *file, const void *src, uint32_t count) {
     sys_free(io_buf);
     return count;
 }
+
+/* 將文件file中的count個字節讀入內存地址dest處 */
+// 等會去下載簡體輸入法，這個函數的註釋先這樣湊合下，~看起來好像也挺好QWQ
+int32_t file_read(struct file *file, void *dest, uint32_t count) {
+    if (count == 0) {
+        return 0;
+    }
+    struct indoe_st *fd_inode = file->fd_inode;
+    if (file->fd_pos + count > fd_inode->i_size) { // 如果超出文件結尾
+        count = fd_inode->i_size - file->fd_pos;
+        if (count == 0) 
+            return -1;
+    }
+
+    struct disk_st *disk = cur_part->my_disk;
+
+    uint32_t start_block_idx = file->fd_pos / BLOCK_SIZE; // 要讀取的首個塊(block)
+    uint32_t end_block_idx = (file->fd_pos + count - 1) / BLOCK_SIZE; // 要讀取的最後一個塊
+
+    uint32_t *all_blocks = (uint32_t *)sys_malloc(140 * sizeof(uint32_t));
+    if (all_blocks == NULL) {
+        k_printf("ERROR file_read: alloc memory failed!!!\n");
+        return -1;
+    }
+    void *io_buf = sys_malloc(BLOCK_SIZE);
+    if (io_buf == NULL) {
+        k_printf("ERROR file_read: alloc memory failed!!!\n");
+        sys_free(all_blocks);
+        return -1;
+    }
+
+    // 將需要讀取的直接塊lba記錄入all_blocks
+    for (int i = start_block_idx; i <= min(11, end_block_idx); i++) {
+        ASSERT(fd_inode->i_sectors[i] != 0);
+        all_blocks[i] = fd_inode->i_sectors[i];
+    }
+
+    // 將間接塊記錄到all_blocks
+    if (end_blocks_idx >= 12) {
+        ASSERT(fd_inode->i_sectors[12] != 0);
+        ide_read(disk, fd_inode->i_sectors[12], 1, all_blocks + 12);
+    }
+
+    // 讀取all_blocks中記錄的塊
+    void *io_dest = dest;
+    uint32_t io_size;
+    uint32_t bytes_left = count;
+    uint32_t off = file->fd_pos % BLOCK_SIZE;
+    if (off) {
+        ide_read(disk, all_blocks[start_block_idx], 1, io_buf);
+        io_size = BLOCK_SIZE - off;
+        // 首個塊前off字節不讀取
+        memcpy(io_dest, io_buf + off, io_size);
+        io_dest += io_size;
+        bytes_left -= io_size;
+        start_block_idx++;
+    }
+
+    // 以下的塊均從塊起始位置讀取
+    for (int i = start_block_idx; i <= end_block_idx; i++) {
+        io_size = min(BLOCK_SIZE, bytes_left);
+        ide_read(disk, all_blocks[i], 1, io_buf);
+        memcpy(io_dest, io_buf, io_size);
+        io_dest += io_size;
+        bytes_left -= io_size;
+    }
+
+    ASSERT(bytes_left == 0);
+
+    sys_free(all_blocks);
+    sys_free(io_buf);
+    return count;
+}

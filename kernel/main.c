@@ -62,6 +62,9 @@ int main() {
     int32_t fd = sys_open("/file0", O_RW);
     printf("    open file with fd:%d\n", fd);
     sys_write(fd, "hello, world!\n", 14);
+    char buf[512] = {0};
+    sys_read(fd, buf, 14);
+    printf("read form fd:%d: %s\n", fd, buf);
     sys_close(fd);
     printf("    close file with fd:%d\n", fd);
 

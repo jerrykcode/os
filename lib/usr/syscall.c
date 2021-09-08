@@ -69,9 +69,14 @@ uint32_t getpid() {
     return _syscall0(SYS_GETPID);
 }
 
-/* 打印字符串 */
-uint32_t write(int32_t fd, const void *buf, uint32_t count);
+/* 向文件描述符fd对应的文件写入buf处的count字节数据 */
+uint32_t write(int32_t fd, const void *buf, uint32_t count) {
     return _syscall3(SYS_WRITE, fd, buf, count);
+}
+
+/* 从文件描述符fd对应的文件读取count字节数据存入dest */
+uint32_t read(int32_t fd, void *dest, uint32_t count) {
+    return _syscall3(SYS_READ, fd, dest, count);
 }
 
 /* 申请size字节内存 */

@@ -5,6 +5,7 @@
 enum SYSCALL_NR {
     SYS_GETPID,
     SYS_WRITE,
+    SYS_READ,
     SYS_MALLOC,
     SYS_FREE,
     SYS_SLEEP
@@ -14,6 +15,7 @@ enum SYSCALL_NR {
 
 uint32_t getpid();
 uint32_t write(int32_t fd, const void *buf, uint32_t count);
+uint32_t read(int32_t fd, void *dest, uint32_t count);
 void *malloc(uint32_t size);
 void free(void *ptr);
 void sleep(uint32_t ms);

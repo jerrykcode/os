@@ -401,7 +401,7 @@ int32_t sys_close(int32_t fd) {
     return result;
 }
 
-/* */
+/* 向文件描述符fd写入buf处count字节的数据 */
 int32_t sys_write(int32_t fd, const void *buf, uint32_t count) {
     if (fd < 0) {
         k_printf("sys_write: fd: %d error\n", fd);
@@ -424,6 +424,15 @@ int32_t sys_write(int32_t fd, const void *buf, uint32_t count) {
         k_printf("sys_write: not allowed to write file without flag O_WONLY or O_RW\n");
         return -1;
     }
+}
+
+int32_t sys_read(int32_t fd, void *dest, uint32_t count) {
+    if (fd < 0) {
+        k_printf("sys_read: error fd: %d\n", fd);
+        return -1;
+    }
+    int32_t g_fd = fd_local2global(fd);
+    return file_read(&file_table[g_fd], dest, count);
 }
 
 void filesys_init() {
