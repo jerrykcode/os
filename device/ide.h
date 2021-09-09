@@ -11,6 +11,14 @@
 #define BLOCK_BTMP_BIT_FREE 0
 #define BLOCK_BTMP_BIT_USED 1
 
+// struct ide_bitmap 与 lib/kernel/bitmap.h 中的 struct bitmap 一样
+// 如果不定义 struct ide_bitmap 而使用 struct bitmap 编译通不过!!
+// kernel/memory.h 中也遇到同样的问题!!!??? :(
+struct ide_bitmap {
+    uint32_t btmp_bytes_len;
+    uint8_t *bits;
+};
+
 // 分区结构体
 struct partition_st {
     uint32_t start_lba;             // 起始扇区
@@ -19,8 +27,8 @@ struct partition_st {
     struct list_node_st part_tag;   // 加入链表的标记
     char name[8];
     struct super_block_st *sb;         // 本分区的超级块
-    struct bitmap block_btmp;       // 块位图
-    struct bitmap inode_btmp;       // i结点位图
+    struct ide_bitmap block_btmp;       // 块位图
+    struct ide_bitmap inode_btmp;       // i结点位图
     struct list_st open_inodes;     // 本分区打开的i结点链表
 };
 

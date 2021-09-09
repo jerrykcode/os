@@ -196,6 +196,10 @@ int32_t file_close(struct file *file) {
     return 0;
 }
 
+static uint32_t min(uint32_t a, uint32_t b) {
+    return a < b ? a : b;
+}
+
 /* 将内存地址src处起始的count字节数据写入文件file末尾 成功返回写入字节数量，失败返回-1 */
 int32_t file_write(struct file *file, const void *src, uint32_t count) {
     if (count == 0) {
@@ -322,7 +326,7 @@ int32_t file_write(struct file *file, const void *src, uint32_t count) {
     if (off) {
         // 如果已使用的最后一块中有剩余空间可以使用
         ide_read(disk, all_blocks[file_has_used_blocks - 1], 1, io_buf);
-        io_size = BLOCK_SIZE - off;
+        io_size = min(BLOCK_SIZE - off, bytes_left);
         memcpy(io_buf + off, io_src, io_size);
         ide_write(disk, all_blocks[file_has_used_blocks - 1], 1, io_buf);
         io_src += io_size;
@@ -358,7 +362,7 @@ int32_t file_read(struct file *file, void *dest, uint32_t count) {
     if (count == 0) {
         return 0;
     }
-    struct indoe_st *fd_inode = file->fd_inode;
+    struct inode_st *fd_inode = file->fd_inode;
     if (file->fd_pos + count > fd_inode->i_size) { // 如果超出文件結尾
         count = fd_inode->i_size - file->fd_pos;
         if (count == 0) 
@@ -389,7 +393,7 @@ int32_t file_read(struct file *file, void *dest, uint32_t count) {
     }
 
     // 將間接塊記錄到all_blocks
-    if (end_blocks_idx >= 12) {
+    if (end_block_idx >= 12) {
         ASSERT(fd_inode->i_sectors[12] != 0);
         ide_read(disk, fd_inode->i_sectors[12], 1, all_blocks + 12);
     }
@@ -401,11 +405,12 @@ int32_t file_read(struct file *file, void *dest, uint32_t count) {
     uint32_t off = file->fd_pos % BLOCK_SIZE;
     if (off) {
         ide_read(disk, all_blocks[start_block_idx], 1, io_buf);
-        io_size = BLOCK_SIZE - off;
+        io_size = min(BLOCK_SIZE - off, bytes_left);
         // 首個塊前off字節不讀取
         memcpy(io_dest, io_buf + off, io_size);
         io_dest += io_size;
         bytes_left -= io_size;
+        file->fd_pos += io_size;
         start_block_idx++;
     }
 
@@ -416,6 +421,7 @@ int32_t file_read(struct file *file, void *dest, uint32_t count) {
         memcpy(io_dest, io_buf, io_size);
         io_dest += io_size;
         bytes_left -= io_size;
+        file->fd_pos += io_size;
     }
 
     ASSERT(bytes_left == 0);

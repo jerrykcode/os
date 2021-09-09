@@ -417,7 +417,7 @@ int32_t sys_write(int32_t fd, const void *buf, uint32_t count) {
 
     int32_t g_fd = fd_local2global(fd);
     struct file *f = &file_table[g_fd];
-    if (f->fd_flag & O_WONLY || f->fd_flags & O_RW) {
+    if (f->fd_flag & O_WONLY || f->fd_flag & O_RW) {
         return file_write(f, buf, count);
     }
     else {
