@@ -24,6 +24,13 @@ enum oflags {
     O_CREATE = 4/* 100 */
 };
 
+/* 文件读写位置偏移量 */
+enum whence {
+    SEEK_SET = 1,
+    SEEK_CUR,
+    SEEK_END
+};
+
 extern struct partition_st *cur_part;
 
 int32_t path_depth(const char *pathname);
@@ -31,6 +38,7 @@ int32_t sys_open(const char *pathname, uint8_t flags);
 int32_t sys_close(int32_t fd);
 int32_t sys_write(int32_t fd, const void *buf, uint32_t count);
 int32_t sys_read(int32_t fd, void *dest, uint32_t count);
+int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence);
 void filesys_init();
 
 #endif

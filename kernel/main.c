@@ -11,6 +11,7 @@
 #include "syscall-init.h"
 #include "stdio.h"
 #include "fs.h"
+#include "string.h"
 
 void thread_1(void *);
 void thread_2(void *);
@@ -62,9 +63,19 @@ int main() {
     int32_t fd = sys_open("/file0", O_RW);
     printf("    open file with fd:%d\n", fd);
     sys_write(fd, "hello, world!\n", 14);
-    char buf[512] = {0};
+    char buf[32] = {0};
     sys_read(fd, buf, 14);
-    printf("read form fd:%d: %s\n", fd, buf);
+    printf("read form fd:%d: %s", fd, buf);
+    sys_lseek(fd, 7, SEEK_SET);
+    memset(buf, 0, 32);
+    sys_read(fd, buf, 7);
+    printf("read :%s", buf);
+    sys_lseek(fd, 13, SEEK_CUR);
+    sys_read(fd, buf, 15);
+    printf("read :%s", buf);
+    sys_lseek(fd, -15, SEEK_END);
+    sys_read(fd, buf, 15);
+    printf("read: %s", buf);
     sys_close(fd);
     printf("    close file with fd:%d\n", fd);
 

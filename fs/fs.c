@@ -435,6 +435,42 @@ int32_t sys_read(int32_t fd, void *dest, uint32_t count) {
     return file_read(&file_table[g_fd], dest, count);
 }
 
+/* 重置用于文件读写操作的偏移指针，成功返回新的偏移量，失败返回-1 */
+int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence) {
+    if (fd < 0) {
+        k_printf("sys_leek: invalid fd:%d\n", fd);
+        return -1;
+    }
+    if (whence < SEEK_SET || whence > SEEK_END) {
+        k_printf("sys_leek: invalid whence:%d\n", whence);
+        return -1;
+    }
+    int32_t g_fd = fd_local2global(fd);
+    struct file *pf = &file_table[g_fd];
+    uint32_t f_size = pf->fd_inode->i_size;
+
+    uint32_t new_pos;
+    switch (whence) {
+        case SEEK_SET:
+            new_pos = offset;
+            break;
+        case SEEK_CUR:
+            new_pos = pf->fd_pos + offset;
+            break;
+        case SEEK_END:
+            new_pos = f_size + offset;
+            break;
+    }
+
+    if (new_pos < 0 || new_pos >= f_size) {
+        k_printf("sys_lseek: position out of bounds\n");
+        return -1;
+    }
+
+    pf->fd_pos = new_pos;
+    return pf->fd_pos;
+}
+
 void filesys_init() {
     struct ide_channel_st *channel;
     struct disk_st *hd;
