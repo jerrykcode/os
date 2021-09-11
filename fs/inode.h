@@ -20,5 +20,6 @@ void inode_sync(struct partition_st *part, const struct inode_st *inode, void *i
 struct inode_st *inode_open(struct partition_st *part, uint32_t inode_id);
 void inode_close(struct partition_st *part, struct inode_st *inode);
 void inode_init(uint32_t inode_id, struct inode_st *new_inode);
+int32_t inode_delete(struct partition_st *part, uint32_t inode_id);
 
 #endif

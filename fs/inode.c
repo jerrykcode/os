@@ -1,6 +1,7 @@
 #include "inode.h"
 #include "stddef.h"
 #include "fs.h"
+#include "file.h"
 #include "ide.h"
 #include "global.h"
 #include "list.h"
@@ -165,4 +166,52 @@ void inode_init(uint32_t inode_id, struct inode_st *new_inode) {
     for (int i = 0; i < 13; i++) {
         new_inode->i_sectors[i] = 0;
     }
+}
+
+// 删除block
+static void block_delete(struct partition_st *part, uint32_t block_lba) {
+    uint32_t block_btmp_idx = block_lba - part->sb->data_start_lba;
+    ASSERT(block_btmp_idx > 0);
+    bitmap_setbit(&part->block_btmp, block_btmp_idx, 0);
+    bitmap_sync(part, block_btmp_idx, BLOCK_BTMP);
+}
+
+/* 删除inode, 释放i_sectors中的所有块占有的硬盘空间，inode号，以及inode_table数组中关于该inode所占有的空间 
+   成功返回0， 失败返回-1 */
+int32_t inode_delete(struct partition_st *part, uint32_t inode_id) {
+    struct inode_st *inode = inode_open(part, inode_id);
+    if (inode == NULL)
+        return -1;
+    ASSERT(inode->i_id == inode_id);
+
+    uint32_t *all_blocks = (uint32_t *)sys_malloc(140 * sizeof(uint32_t));
+    if (all_blocks == NULL) {
+        k_printf("ERROR inode_delete: alloc memory failed!!!\n");
+        return -1;
+    }
+
+    for (int i = 0; i < 12; i++)
+        all_blocks[i] = inode->i_sectors[i];
+
+    if (inode->i_sectors[12]) {
+        // 读取间接块
+        ide_read(part->my_disk, inode->i_sectors[12], 1, all_blocks + 12);
+        // 删除i_sectors[12]
+        block_delete(part, inode->i_sectors[12]);
+    }
+
+    // 删除所有的块
+    for (int i = 0; i < 140; i++)
+        if (all_blocks[i])
+            block_delete(part, all_blocks[i]);
+
+    sys_free(all_blocks);
+
+    // 释放inode号及inode占用的空间
+    bitmap_setbit(&part->inode_btmp, inode_id, 0);
+    bitmap_sync(part, inode_id, INODE_BTMP);
+
+    inode_close(part, inode);
+
+    return 0;
 }
