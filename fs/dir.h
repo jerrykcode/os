@@ -32,5 +32,6 @@ void dir_close(struct dir_st *dir);
 bool dir_search(struct partition_st *part, struct dir_st *dir, const char *entry_name, struct dir_entry_st *entry);
 void dir_init_entry(struct dir_entry_st *entry, const char *filename, uint32_t inode_id, uint8_t f_type);
 bool dir_sync_entry(struct dir_st *dir, struct dir_entry_st *entry, void *io_buf);
+bool dir_delete_entry(struct partition_st *part, struct dir_st *dir, uint32_t dl_inode_id, void *io_buf);
 
 #endif

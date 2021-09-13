@@ -209,3 +209,101 @@ END:
     sys_free(all_blocks);
     return result;
 }
+
+// 删除block
+static void block_delete(struct partition_st *part, uint32_t block_lba) {
+    uint32_t block_btmp_idx = block_lba - part->sb->data_start_lba;
+    ASSERT(block_btmp_idx > 0);
+    bitmap_setbit(&part->block_btmp, block_btmp_idx, 0);
+    bitmap_sync(part, block_btmp_idx, BLOCK_BTMP);
+}
+
+/* 在分区part的目录dir中删除inode号为dl_inode_id的目录项，io_buf由主调函数提供 */
+bool dir_delete_entry(struct partition_st *part, struct dir_st *dir, uint32_t dl_inode_id, void *io_buf) {
+    struct disk_st *disk = part->my_disk;
+    struct inode_st *dir_inode = dir->inode;
+    uint32_t *all_blocks = (uint32_t *)sys_malloc(140 * sizeof(uint32_t));
+    if (all_blocks == NULL) {
+        k_printf("ERROR dir_delete_entry: alloc memory failed!!!\n");
+        return false;
+    }
+
+    int i, j;
+    for (i = 0; i < 12; i++) {
+        // 复制直接块lba
+        all_blocks[i] = dir_inode->i_sectors[i];
+    }
+    if (dir_inode->i_sectors[12]) {
+        // 读取间接块lba
+        ide_read(disk, dir_inode->i_sectors[12], 1, all_blocks + 12);
+    }
+
+    uint32_t entry_count;
+    struct dir_entry_st *dir_entry;
+    uint32_t entry_per_block = BLOCK_SIZE / sizeof(struct dir_entry_st);
+    uint32_t dl_entry_idx = -1;
+    bool result = false; // 返回值，初始化为默认false
+
+    for (i = 0; i < 140; i++) { // 枚举所有块
+        if (all_blocks[i] == 0)
+            continue;
+
+        entry_count = 0; // 记录块中的目录项数目, 初始化为0
+        ide_read(disk, all_blocks[i], 1, io_buf); // 读入块
+        dir_entry = (struct dir_entry_st *)io_buf; // 目录项指针，初始指向io_buf第0项，即块中首个目录项
+        
+        for (j = 0; j < entry_per_block; j++) { // 枚举目录项
+            if ((dir_entry + j)->f_type != FT_UNKNOWN) {
+                entry_count++;
+                if ((dir_entry + j)->inode_id == dl_inode_id) {
+                    // 找到要删除的目录项了
+                    dl_entry_idx = j;
+                    // 这个时候不能break, 因为还要entry_count继续计数
+                }
+            }
+        }
+        if (dl_entry_idx == -1) // 这一块中没找到，继续去下一块中找
+            continue;
+
+        // 以下代码 已经找到待删除目录项了
+
+        if (entry_count > 1) { // 除了待删除项以外还有其他目录项
+            memset(dir_entry + dl_entry_idx, 0, sizeof(struct dir_entry_st)); // 将待删除的目录项填充0
+            ide_write(disk, all_blocks[i], 1, io_buf); // 写回硬盘
+        }
+        else { // entry_count == 1, 即块中除了待删除项以外没有其他项了
+            // 那么删除之后，这一块中就没有内容了，所以这一块也需要被释放掉
+            block_delete(part, all_blocks[i]);
+            all_blocks[i] = 0;
+
+            if (i < 12) { // 刚刚删掉的块是直接块
+                dir_inode->i_sectors[i] = 0;
+            }
+            else { // i >= 12 删掉的是间接块
+                // 检测是否还存在间接块
+                for (j = 12; j < 140; j++) {
+                    if (all_blocks[j])
+                         break;
+                }
+
+                if (j < 140) { // 存在间接块
+                    // 更新i_sectors[12]指向的块的内容
+                    ide_write(disk, dir_inode->i_sectors[12], 1, all_blocks + 12);
+                }
+                else { // 不存在间接块
+                    // i_sectors[12]已失去意义，也要被释放
+                    block_delete(part, dir_inode->i_sectors[12]);
+                    dir_inode->i_sectors[12] = 0;
+                } // if 是否存在间接块 ?
+            } // if 是否直接块 ?
+        } // if 块中是否存在其他目录项 ?
+
+        dir_inode->i_size -= sizeof(struct dir_entry_st);
+        inode_sync(part, dir_inode, io_buf);
+        result = true;
+        break;
+    } //for
+
+    sys_free(all_blocks);
+    return result;
+}
