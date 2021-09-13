@@ -79,6 +79,8 @@ int main() {
     sys_close(fd);
     printf("    close file with fd:%d\n", fd);
 
+    printf("/file0 delete %s!\n", sys_unlink("/file0") == 0 ? "success" : "fail");
+
     while (1) {
         //console_put_str("Main ");
     }

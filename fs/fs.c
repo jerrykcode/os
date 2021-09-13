@@ -471,6 +471,47 @@ int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence) {
     return pf->fd_pos;
 }
 
+/* 删除文件(非目录), 成功返回0， 失败返回-1 */
+int32_t sys_unlink(const char *pathname) {
+    ASSERT(strlen(pathname) < MAX_PATH_LEN);
+
+    struct path_search_record record;
+    int32_t inode_id = search_file(pathname, &record);
+    if (inode_id == -1) {
+        k_printf("can not reach path: %s\n", pathname);
+        dir_close(record.parent_dir);
+        return -1;
+    }
+
+    if (record.file_type == FT_DIRECTORY) {
+        k_printf("can't unlink a directory by sys_unlink(), use rmdir() instead!\n");
+        dir_close(record.parent_dir);
+        return -1;
+    }
+
+    for (int i = 0; i < MAX_FILE_OPEN; i++) {
+        if (file_table[i].fd_inode->i_id == inode_id) {
+            k_printf("can't unlink a file that is in use!\n");
+            dir_close(record.parent_dir);
+            return -1;
+        }
+    }
+
+    void *io_buf = sys_malloc(2 * SECTOR_SIZE);
+    if (io_buf == NULL) {
+        k_printf("ERROR sys_unlink: alloc memory failed!!!\n");
+        dir_close(record.parent_dir);
+        return -1;
+    }
+
+    dir_delete_entry(cur_part, record.parent_dir, inode_id, io_buf);
+    inode_delete(cur_part, inode_id);
+
+    dir_close(record.parent_dir);
+    sys_free(io_buf);
+    return 0;
+}
+
 void filesys_init() {
     struct ide_channel_st *channel;
     struct disk_st *hd;
