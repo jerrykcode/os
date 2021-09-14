@@ -594,6 +594,34 @@ int32_t sys_mkdir(const char *pathname) {
     return 0;
 }
 
+/* 打开目录 */
+struct dir_st *sys_opendir(const char *pathname) {
+    ASSERT(strlen(pathname) < MAX_PATH_LEN);
+
+    struct path_search_record record;
+    int32_t inode_id = search_file(pathname, &record);
+    dir_close(record.parent_dir);
+    if (inode_id == -1) {
+        k_printf("%s dose not exist!\n", pathname);
+        return NULL;
+    }
+
+    if (record.file_type == FT_REGULAR) {
+        k_printf("can not open a regular file with sys_opendir(), use sys_open() instead!\n");
+        return NULL;
+    }
+
+    ASSERT(record.file_type == FT_DIRECTORY);
+    return dir_open(cur_part, inode_id);
+}
+
+/* 关闭目录 */
+void sys_closedir(struct dir_st *dir) {
+    if (dir == NULL)
+        return ;
+    dir_close(dir);
+}
+
 void filesys_init() {
     struct ide_channel_st *channel;
     struct disk_st *hd;

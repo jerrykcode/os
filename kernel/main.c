@@ -80,7 +80,7 @@ int main() {
     printf("    close file with fd:%d\n", fd);
 
     printf("/file0 delete %s!\n", sys_unlink("/file0") == 0 ? "success" : "fail");
-
+/*
     printf("\nmkdir /dir0 %s\n", sys_mkdir("/dir0/") == 0 ? "success" : "fail");
     fd = sys_open("/dir0/f", O_CREATE | O_RW);
     printf("open(create) file /dir0/f with fd:%d\n", fd);
@@ -89,6 +89,11 @@ int main() {
     printf("read: %s", buf);
     sys_close(fd);
     printf("    close file with fd:%d\n", fd);
+*/
+    struct dir_st *dir = sys_opendir("/dir0");
+    printf("open dir /dir0 %s\n", dir ? "success" : "fail");
+    sys_closedir(dir);
+    printf("close dir!");
 
     while (1) {
         //console_put_str("Main ");
