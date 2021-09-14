@@ -103,7 +103,7 @@ void dir_init_entry(struct dir_entry_st *entry, const char *filename, uint32_t i
     entry->f_type = f_type;
 }
 
-/* 将目录项entry写入dir目录, io_buf由主调函数提供 */
+/* 将目录项entry写入dir目录, io_buf由主调函数提供, io_buf需要2*SECTOR_SIZE字节 */
 // 执行该函数时分区为全局变量cur_part
 bool dir_sync_entry(struct dir_st *dir, struct dir_entry_st *entry, void *io_buf) {
     ASSERT(dir != NULL);

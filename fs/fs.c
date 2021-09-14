@@ -512,6 +512,88 @@ int32_t sys_unlink(const char *pathname) {
     return 0;
 }
 
+/* 创建目录，成功返回0， 失败返回-1 */
+int32_t sys_mkdir(const char *pathname) {
+    ASSERT(strlen(pathname) < MAX_PATH_LEN);
+    uint32_t dir_entry_size = cur_part->sb->dir_entry_size;
+
+    struct path_search_record record;
+    if (search_file(pathname, &record) != -1) {
+        k_printf("%s already exist!\n", pathname);
+        dir_close(record.parent_dir);
+        return -1;
+    }
+
+    if (path_depth(pathname) != path_depth(record.path)) {
+        k_printf("path %s dose not exist!\n", record.path);
+        dir_close(record.parent_dir);
+        return -1;
+    }
+
+    /* 分配inode */
+    int32_t inode_id = inode_bitmap_alloc(cur_part);
+    if (inode_id == -1) {
+        k_printf("inode alloc failed!\n");
+        dir_close(record.parent_dir);
+        return -1;
+    }
+
+    struct inode_st inode;
+    inode_init(inode_id, &inode);
+
+    /* 创建目录项并写入父目录 */
+
+    struct dir_entry_st entry;
+
+    // 初始化目录项
+    // strrchr不使用pathname作为参数是因为pathname可能以'/'结尾
+    // 而record.path最后不会有'/'
+    dir_init_entry(&entry, strrchr(record.path, '/') + 1, inode_id, FT_DIRECTORY);
+
+    void *io_buf = sys_malloc(2 * SECTOR_SIZE);
+    if (io_buf == NULL) {
+        k_printf("ERROR sys_mkdir: alloc memory failed!!!\n");
+        dir_close(record.parent_dir);
+        bitmap_setbit(&cur_part->inode_btmp, inode_id, INODE_BTMP_BIT_FREE);
+        return -1;
+    }
+
+    // 写入父目录
+    if (!dir_sync_entry(record.parent_dir, &entry, io_buf)) {
+        k_printf("dir_sync_entry failed!\n");
+        dir_close(record.parent_dir);
+        bitmap_setbit(&cur_part->inode_btmp, inode_id, INODE_BTMP_BIT_FREE);
+        sys_free(io_buf);
+        return -1;
+    }
+
+    /* 创建block并将lba写入inode的i_sectors */
+    int32_t block_lba = block_bitmap_alloc(cur_part);
+    if (block_lba == -1) {
+        k_printf("block_bitmap alloc failed!\n");
+        dir_delete_entry(cur_part, record.parent_dir, inode_id, io_buf); // 撤销之前写入的目录项
+        dir_close(record.parent_dir);
+        bitmap_setbit(&cur_part->inode_btmp, inode_id, INODE_BTMP_BIT_FREE);
+        sys_free(io_buf);
+        return -1;
+    }
+    // 为block写入内容
+    memset(io_buf, 0, SECTOR_SIZE);
+    dir_init_entry(&entry, ".", inode_id, FT_DIRECTORY);
+    memcpy(io_buf, &entry, dir_entry_size);
+    dir_init_entry(&entry, "..", record.parent_dir->inode->i_id, FT_DIRECTORY);
+    memcpy(io_buf + dir_entry_size, &entry, dir_entry_size);
+    ide_write(cur_part->my_disk, block_lba, 1, io_buf);
+
+    inode.i_sectors[0] = block_lba;
+    inode.i_size = 2 * dir_entry_size;
+    inode_sync(cur_part, &inode, io_buf);
+
+    dir_close(record.parent_dir);
+    sys_free(io_buf);
+    return 0;
+}
+
 void filesys_init() {
     struct ide_channel_st *channel;
     struct disk_st *hd;

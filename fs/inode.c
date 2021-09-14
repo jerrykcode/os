@@ -37,7 +37,8 @@ static void get_inode_position(struct partition_st *part, uint32_t inode_id, str
     inode_pos->off_size = inode_off_in_sec;
 }
 
-/* 将inode写入到分区part */
+/* 将inode写入到分区part
+   io_buf由主调函数提供，需要 2*SECTOR_SIZE字节 */
 void inode_sync(struct partition_st *part, const struct inode_st *inode, void *io_buf) {
     uint32_t inode_id = inode->i_id;
     struct inode_position inode_pos;

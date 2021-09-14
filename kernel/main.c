@@ -81,6 +81,15 @@ int main() {
 
     printf("/file0 delete %s!\n", sys_unlink("/file0") == 0 ? "success" : "fail");
 
+    printf("\nmkdir /dir0 %s\n", sys_mkdir("/dir0/") == 0 ? "success" : "fail");
+    fd = sys_open("/dir0/f", O_CREATE | O_RW);
+    printf("open(create) file /dir0/f with fd:%d\n", fd);
+    sys_write(fd, "hello, world!\n", 14);
+    sys_read(fd, buf, 14);
+    printf("read: %s", buf);
+    sys_close(fd);
+    printf("    close file with fd:%d\n", fd);
+
     while (1) {
         //console_put_str("Main ");
     }
