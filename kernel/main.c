@@ -11,6 +11,7 @@
 #include "syscall-init.h"
 #include "stdio.h"
 #include "fs.h"
+#include "dir.h"
 #include "string.h"
 
 void thread_1(void *);
@@ -90,8 +91,16 @@ int main() {
     sys_close(fd);
     printf("    close file with fd:%d\n", fd);
 */
+
+    sys_open("/dir0/test", O_CREATE | O_RW);
+    sys_open("/dir0/zzf", O_CREATE | O_RW);
+
     struct dir_st *dir = sys_opendir("/dir0");
     printf("open dir /dir0 %s\n", dir ? "success" : "fail");
+    struct dir_entry_st *entry;
+    while (entry = dir_read(dir)) {
+        printf(" {%s}\n", entry->filename);
+    }
     sys_closedir(dir);
     printf("close dir!");
 

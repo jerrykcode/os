@@ -24,7 +24,7 @@ switch.o: thread/switch.S
 CFLAGS += -std=c99 -fno-stack-protector
 INCLUDE = -I lib/kernel/ -I lib/usr -I lib/ -I kernel/ -I device/ -I thread/ -I usrprog/ -I fs/
 main.o: kernel/main.c lib/kernel/print.h kernel/init.h kernel/memory.h lib/kernel/asm.h thread/thread.h kernel/debug.h \
-	device/keyboard.h device/ioqueue.h usrprog/process.h usrprog/syscall-init.h lib/usr/syscall.h lib/stdio.h
+	device/keyboard.h device/ioqueue.h usrprog/process.h usrprog/syscall-init.h lib/usr/syscall.h lib/stdio.h fs/dir.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 init.o: kernel/init.c kernel/init.h kernel/memory.h kernel/interrupt.h device/timer.h lib/kernel/print.h \
 	device/console.h device/keyboard.h usrprog/tss.h usrprog/syscall-init.h device/ide.h fs/fs.h

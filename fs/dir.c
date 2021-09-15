@@ -14,11 +14,15 @@ void open_root_dir(struct partition_st *part) {
     root_dir.dir_pos = 0;
 }
 
+static void it_init(struct dir_entry_iterator *it, struct dir_st *dir);
+static void it_close(struct dir_entry_iterator *it);
+
 /* 打开分区part中inode号为inode_id的目录，并返回目录指针 */
 struct dir_st *dir_open(struct partition_st *part, uint32_t inode_id) {
     struct dir_st *dir = (struct dir_st *)sys_malloc(sizeof(struct dir_st));
     dir->inode = inode_open(part, inode_id);
     dir->dir_pos = 0;
+    it_init(&dir->dir_it, dir);
     return dir;
 }
 
@@ -27,6 +31,7 @@ void dir_close(struct dir_st *dir) {
     if (dir == &root_dir) // 根目录不做处理
         return;
     inode_close(&cur_part, dir->inode);
+    it_close(&dir->dir_it);
     sys_free(dir);
 }
 
@@ -306,4 +311,86 @@ bool dir_delete_entry(struct partition_st *part, struct dir_st *dir, uint32_t dl
 
     sys_free(all_blocks);
     return result;
+}
+
+// 迭代器相关函数
+static void it_init(struct dir_entry_iterator *it, struct dir_st *dir) {
+    it->dir = dir;
+    it->cur_block_idx = 0;
+    it->cur_entry_idx = 0;
+    it->block_buf = NULL;
+    it->blocks = NULL;
+    it->entry_count = 0;
+    it->rewind = false;
+}
+
+static struct dir_entry_st *it_next(struct dir_entry_iterator *it) {
+    struct dir_st *dir = it->dir;
+    struct inode_st *dir_inode = dir->inode;
+    uint32_t dir_entry_size = cur_part->sb->dir_entry_size;
+
+    ASSERT(dir_inode->i_size % dir_entry_size == 0);
+    if (it->entry_count >= dir_inode->i_size / dir_entry_size) // 已读取所有目录项
+        return NULL;
+
+    if (it->block_buf == NULL) {
+        ASSERT(it->cur_block_idx == 0); // it_init()之后首次执行it_next()
+        it->block_buf = sys_malloc(BLOCK_SIZE);
+        if (it->block_buf == NULL) {
+            k_printf("ERROR it_next: alloc memory failed!\n");
+            return NULL;
+        }
+        ide_read(cur_part->my_disk, dir_inode->i_sectors[0], 1, it->block_buf); //从硬盘读入dir的第0个块
+    }
+    else if (it->rewind) {
+        // rewind过，重新读取dir_inode->i_sectors[0]
+        ASSERT(it->cur_block_idx == 0);
+        ide_read(cur_part->my_disk, dir_inode->i_sectors[0], 1, it->block_buf);
+    }
+
+    uint32_t entry_per_block = BLOCK_SIZE / dir_entry_size;
+    struct dir_entry_st *entry;
+    while (it->cur_block_idx < 140) {
+        entry = (struct dir_entry_st *)it->block_buf;
+        for ( ; it->cur_entry_idx < entry_per_block; it->cur_entry_idx++) {
+            if ((entry + it->cur_entry_idx)->f_type != FT_UNKNOWN) { // 找到一个目录项
+                dir->dir_pos += dir_entry_size;
+                it->entry_count++;
+                return entry + it->cur_entry_idx++; // ++是为了指向下一项，方便下一次调用it_next()
+            }
+        }
+        // 进入下一个块
+        if (++it->cur_block_idx < 12) { // 更新it->cur_block_idx并判断是直接块还是间接块
+            // 从硬盘读取新的块，it->block_buf更新为新的块的内容
+            ide_read(cur_part->my_disk, dir_inode->i_sectors[it->cur_block_idx], 1, it->block_buf);
+        }
+        else { // 间接块
+            if (it->blocks == NULL) {
+                it->blocks = (uint32_t *)sys_malloc(BLOCK_SIZE);
+                if (it->blocks == NULL) {
+                    k_printf("ERROR it_next: alloc memory failed!!!\n");
+                    return NULL;
+                }
+                ide_read(cur_part->my_disk, dir_inode->i_sectors[12], 1, it->blocks);
+            }
+            ide_read(cur_part->my_disk, it->blocks[it->cur_block_idx], 1, it->block_buf);
+        } 
+        it->cur_entry_idx = 0; // 进入新的块后要从0开始遍历这个块中的目录项
+    }
+    return NULL;
+}
+
+static void it_close(struct dir_entry_iterator *it) {
+    if (it->block_buf)
+        sys_free(it->block_buf);
+
+    if (it->blocks)
+        sys_free(it->blocks);
+}
+
+/* 读取目录，成功返回一个目录项，失败返回NULL */
+struct dir_entry_st *dir_read(struct dir_st *dir) {
+    if (dir == NULL)
+        return NULL;
+    return it_next(&dir->dir_it);
 }
