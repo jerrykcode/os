@@ -88,6 +88,7 @@ struct task_st {
     struct mem_block_desc usrprog_mem_block_descs[MEM_BLOCK_DESC_NUM]; // 用户进程的mem_block_desc(堆内存块描述符数组)
     struct list_node_st thread_node; // 任务队列节点
     struct list_node_st thread_ready_node; // 就绪队列节点
+    uint32_t cwd_inode_id; // 进程所在的工作目录的inode号
     uint32_t stack_magic; // 判断栈溢出
 };
 

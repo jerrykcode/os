@@ -73,6 +73,7 @@ void task_init(struct task_st *task, char *name, enum task_status status, uint32
         task->fd_table[i] = -1;
     }
     task->page_table = NULL;
+    task->cwd_inode_id = 0; // 以根目录为默认工作目录
     task->stack_magic = STACK_MAGIC;
 }
 

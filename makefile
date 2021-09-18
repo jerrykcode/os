@@ -78,7 +78,7 @@ ide.o: device/ide.c device/ide.h thread/sync.h lib/stdio.h lib/kernel/stdio-kern
 	kernel/debug.h lib/string.h kernel/global.h lib/kernel/bitmap.h lib/kernel/io.h device/timer.h lib/stddef.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 fs.o: fs/fs.c fs/fs.h fs/super_block.h fs/inode.h fs/dir.h device/ide.h kernel/memory.h lib/string.h lib/kernel/stdio-kernel.h \
-	kernel/global.h lib/kernel/bitmap.h kernel/debug.h thread/thread.h fs/file.h
+	kernel/global.h lib/kernel/bitmap.h kernel/debug.h thread/thread.h fs/file.h thread/thread.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 file.o: fs/file.c fs/file.h fs/fs.h fs/dir.h fs/inode.h fs/super_block.h device/ide.h lib/kernel/stdio-kernel.h lib/stdint.h \
 	lib/stddef.h lib/kernel/list.h thread/thread.h kernel/interrupt.h

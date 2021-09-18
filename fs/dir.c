@@ -394,3 +394,104 @@ struct dir_entry_st *dir_read(struct dir_st *dir) {
         return NULL;
     return it_next(&dir->dir_it);
 }
+
+/* 在父目录的inode结构中寻找inode号为child_inode_id的子目录项的名字 */
+static bool search_child_filename(struct inode_st *parent_inode, int32_t child_inode_id, char *filename, void *io_buf) {
+    struct partition_st *part = cur_part;
+    uint32_t *all_blocks = (uint32_t *)sys_malloc(BLOCK_SIZE);
+    if (all_blocks == NULL) {
+        k_printf("ERROR search_child_filename: alloc memory failed!!!\n");
+        return false;
+    }
+    uint32_t blocks_num = 12;
+    int i, j;
+    for (i = 0; i < blocks_num; i++) {
+        all_blocks[i] = parent_inode->i_sectors[i];
+    }
+    if (parent_inode->i_sectors[12]) {
+        ide_read(part->my_disk, parent_inode->i_sectors[12], 1, all_blocks + 12);
+        blocks_num = 140;
+    }
+
+    struct dir_entry_st *entry;
+    uint32_t entry_per_block = BLOCK_SIZE / part->sb->dir_entry_size;
+    for (i = 0; i < blocks_num; i++) {
+        if (all_blocks[i] == 0)
+            continue;
+        ide_read(part->my_disk, all_blocks[i], 1, io_buf);
+        entry = (struct dir_entry_st *)io_buf;
+        for (j = 0; j < entry_per_block; j++) {
+            if ((entry + j)->inode_id == child_inode_id) {
+                strcpy(filename, (entry + j)->filename);
+                sys_free(all_blocks);
+                return true;
+            }
+        }
+    }
+
+    sys_free(all_blocks);
+    return false;
+}
+
+/* 通过目录的inode结构体寻找其名字，并返回其父目录的inode结构体 */
+static struct inode_st *dir_inode2filename(struct inode_st *inode, char *filename, void *io_buf) {
+    struct partition_st *part = cur_part;
+    ASSERT(inode->i_sectors[0] != 0);
+    ide_read(part->my_disk, inode->i_sectors[0], 1, io_buf);
+    struct dir_entry_st *parent_entry = (struct dir_entry_st *)(io_buf) + 1; // 第1个目录项，理论上是父目录".."
+    ASSERT(parent_entry->f_type == FT_DIRECTORY);
+    ASSERT(strcmp(parent_entry->filename, "..") == 0);
+    int32_t parent_inode_id = parent_entry->inode_id;
+    struct inode_st *parent_inode = inode_open(part, parent_inode_id);
+    search_child_filename(parent_inode, inode->i_id, filename, io_buf);
+    return parent_inode;
+}
+
+static uint32_t max(uint32_t a, uint32_t b) {
+    return a > b ? a : b;
+}
+
+/* 计算inode号为dir_inode_id的目录的完整绝对路径, 成功返回0，失败返回-1 */
+int32_t dir_getcwd(int32_t dir_inode_id, char *pathname) {
+    if (dir_inode_id < 0)
+        return -1;
+
+    if (dir_inode_id == 0) { // 根目录
+        pathname[0] = '/';
+        pathname[1] = '\0';
+        return 0;
+    }
+
+    void *buf = sys_malloc(max(BLOCK_SIZE, MAX_PATH_LEN));
+    if (buf == NULL) {
+        k_printf("ERROR dir_getcwd: alloc memory failed!!!\n");
+        return -1;
+    }
+    void *io_buf = buf;
+    char filename[MAX_FILE_NAME_LEN] = {0};
+    struct partition_st *part = cur_part;
+    struct inode_st *inode = inode_open(part, dir_inode_id);
+
+    uint32_t depth = 0;
+    struct inode_st *parent_inode;
+    while (inode->i_id) { // inode不是根目录
+        parent_inode = dir_inode2filename(inode, filename, io_buf);
+        inode_close(part, inode);
+        inode = parent_inode;
+        strcat(pathname, "/");
+        strcat(pathname, filename);
+        depth++;
+    }
+    inode_close(part, inode);
+
+    char *tmp_path = (char *)buf;
+    memset(tmp_path, 0, MAX_PATH_LEN);
+    for (int i = 0; i < depth; i++) {
+        char *last_slash = strrchr(pathname, '/');
+        strcat(tmp_path, last_slash);
+        *last_slash = '\0';
+    }
+    memcpy(pathname, tmp_path, strlen(tmp_path));
+
+    sys_free(buf);
+}

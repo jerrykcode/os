@@ -41,6 +41,8 @@ int32_t sys_read(int32_t fd, void *dest, uint32_t count);
 int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence);
 int32_t sys_unlink(const char *pathname);
 int32_t sys_mkdir(const char *pathname);
+char *sys_getcwd(char *buf, uint32_t size);
+int32_t sys_chdir(const char *path);
 struct dir_st *sys_opendir(const char *pathname);
 void sys_closedir(struct dir_st *dir);
 void filesys_init();

@@ -46,5 +46,6 @@ void dir_init_entry(struct dir_entry_st *entry, const char *filename, uint32_t i
 bool dir_sync_entry(struct dir_st *dir, struct dir_entry_st *entry, void *io_buf);
 bool dir_delete_entry(struct partition_st *part, struct dir_st *dir, uint32_t dl_inode_id, void *io_buf);
 struct dir_entry_st *dir_read(struct dir_st *dir);
+int32_t dir_getcwd(int32_t dir_inode_id, char *pathname);
 
 #endif

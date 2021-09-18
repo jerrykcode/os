@@ -13,6 +13,7 @@
 #include "bitmap.h"
 #include "debug.h"
 #include "list.h"
+#include "thread.h"
 
 #define SUPER_BLOCK_MAGIC_FILE_SYS  0x20210819
 
@@ -591,6 +592,39 @@ int32_t sys_mkdir(const char *pathname) {
 
     dir_close(record.parent_dir);
     sys_free(io_buf);
+    return 0;
+}
+
+/* 获取工作目录 */
+char *sys_getcwd(char *buf, uint32_t size) {
+    ASSERT(buf != NULL);
+    struct task_st *cur = current_thread();
+    int32_t inode_id = cur->cwd_inode_id;
+    ASSERT(inode_id >= 0 && inode_id < 4096);
+    dir_getcwd(inode_id, buf);
+    return buf;
+}
+
+/* 改变工作目录 cd */
+int32_t sys_chdir(const char *pathname) {
+    struct path_search_record record;
+    int32_t inode_id = search_file(pathname, &record);
+    if (inode_id == -1) {
+        k_printf("path %s dose not exist!\n", pathname);
+        dir_close(record.parent_dir);
+        return -1;
+    }
+
+    if (record.file_type != FT_DIRECTORY) {
+        k_printf("path %s is not a directory!\n", pathname);
+        dir_close(record.parent_dir);
+        return -1;
+    }
+
+    struct task_st *cur = current_thread();
+    cur->cwd_inode_id = inode_id;
+
+    dir_close(record.parent_dir);
     return 0;
 }
 
