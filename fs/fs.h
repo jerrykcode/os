@@ -31,6 +31,9 @@ enum whence {
     SEEK_END
 };
 
+struct dir_entry_st;
+struct dir_st;
+
 extern struct partition_st *cur_part;
 
 int32_t path_depth(const char *pathname);
@@ -41,6 +44,9 @@ int32_t sys_read(int32_t fd, void *dest, uint32_t count);
 int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence);
 int32_t sys_unlink(const char *pathname);
 int32_t sys_mkdir(const char *pathname);
+int32_t sys_rmdir(const char *pathname);
+struct dir_entry_st *sys_readdir(struct dir_st *dir);
+void sys_rewinddir(struct dir_st *dir);
 char *sys_getcwd(char *buf, uint32_t size);
 int32_t sys_chdir(const char *path);
 struct dir_st *sys_opendir(const char *pathname);

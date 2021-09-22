@@ -62,9 +62,9 @@ int main() {
     thread_start("thread_C", 31, thread_2, " thread C ");
     
     char buf[MAX_PATH_LEN] = {0};
-/*
-    int32_t fd = sys_open("/file0", O_RW);
-    printf("    open file with fd:%d\n", fd);
+
+    int32_t fd = sys_open("/file0", O_CREATE|O_RW);
+/*    printf("    open file with fd:%d\n", fd);
     sys_write(fd, "hello, world!\n", 14);
     sys_read(fd, buf, 14);
     printf("read form fd:%d: %s", fd, buf);
@@ -82,7 +82,7 @@ int main() {
     printf("    close file with fd:%d\n", fd);
 
     printf("/file0 delete %s!\n", sys_unlink("/file0") == 0 ? "success" : "fail");
-
+*/
     printf("\nmkdir /dir0 %s\n", sys_mkdir("/dir0/") == 0 ? "success" : "fail");
     fd = sys_open("/dir0/f", O_CREATE | O_RW);
     printf("open(create) file /dir0/f with fd:%d\n", fd);
@@ -91,10 +91,11 @@ int main() {
     printf("read: %s", buf);
     sys_close(fd);
     printf("    close file with fd:%d\n", fd);
-*/
 
-//    sys_open("/dir0/test", O_CREATE | O_RW);
-//    sys_open("/dir0/zzf", O_CREATE | O_RW);
+
+    sys_open("/dir0/test", O_CREATE | O_RW);
+    sys_open("/dir0/zzf", O_CREATE | O_RW);
+/*
     sys_mkdir("/dir0/d1/");
     sys_mkdir("/dir0/d1/d2/");
     sys_mkdir("/dir0/d1/zzf/");
@@ -103,16 +104,19 @@ int main() {
     sys_getcwd(buf, MAX_PATH_LEN);
 
     printf("current working directory: %s\n", buf);
-
+*/
     struct dir_st *dir = sys_opendir("/dir0");
     printf("open dir /dir0 %s\n", dir ? "success" : "fail");
     struct dir_entry_st *entry;
-    while (entry = dir_read(dir)) {
+    while (entry = sys_readdir(dir)) {
         printf(" {%s}\n", entry->filename);
     }
+    sys_rewinddir(dir);
+    while (entry = sys_readdir(dir))
+        printf(" {%s}\n", entry->filename);
     sys_closedir(dir);
     printf("close dir!");
-
+/*
     printf("change dir %s\n", sys_chdir("/dir0/d1/d2") == 0 ? "success" : "fail");
     memset(buf, 0, MAX_PATH_LEN);
     sys_getcwd(buf, MAX_PATH_LEN);
@@ -127,7 +131,7 @@ int main() {
     memset(buf, 0, MAX_PATH_LEN);
     sys_getcwd(buf, MAX_PATH_LEN);
     printf("current working directory: %s\n", buf);
-
+*/
 
     while (1) {
         //console_put_str("Main ");

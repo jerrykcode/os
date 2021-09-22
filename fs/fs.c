@@ -595,6 +595,44 @@ int32_t sys_mkdir(const char *pathname) {
     return 0;
 }
 
+/* 删除目录, 成功返回0，失败返回-1 */
+int32_t sys_rmdir(const char *pathname) {
+    struct path_search_record record;
+    int32_t inode_id = search_file(pathname, &record);
+    int32_t result = -1; // 初始化为失败
+    if (inode_id == -1) { // 路径不存在
+        k_printf("sys_rmdir() failed: %s dose not exist.\n", pathname);
+    }
+    else {
+        if (record.file_type != FT_DIRECTORY) { // 非目录
+            k_printf("sys_rmdir() failed: %s is not a directory!\n", pathname);
+        }
+        else {
+            struct dir_st *dir = dir_open(cur_part, inode_id);
+            if (! dir_is_empty(dir)) { // 非空
+                k_printf("sys_rmdir() failed: %s is not empty.\n", pathname);
+            }
+            else {
+                if (dir_remove(record.parent_dir, dir) == 0) { // 成功删除
+                    result = 0;
+                }
+            }
+        }
+    }
+    dir_close(record.parent_dir);
+    return result;
+}
+
+struct dir_entry_st *sys_readdir(struct dir_st *dir) {
+    return dir_read(dir);
+}
+
+void sys_rewinddir(struct dir_st *dir) {
+    if (dir == NULL)
+        return;
+    dir_rewind(dir);
+}
+
 /* 获取工作目录 */
 char *sys_getcwd(char *buf, uint32_t size) {
     ASSERT(buf != NULL);

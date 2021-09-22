@@ -395,6 +395,46 @@ struct dir_entry_st *dir_read(struct dir_st *dir) {
     return it_next(&dir->dir_it);
 }
 
+/* 将目录dir的迭代器回绕到首个目录项处 */
+void dir_rewind(struct dir_st *dir) {
+    dir->dir_it.cur_block_idx = 0;
+    dir->dir_it.cur_entry_idx = 0;
+    dir->dir_it.entry_count = 0;
+    dir->dir_it.rewind = true;
+}
+
+/* 返回目录dir是否为空 */
+bool dir_is_empty(struct dir_st *dir) {
+    struct inode_st *dir_inode = dir->inode;
+    return dir_inode->i_size == cur_part->sb->dir_entry_size * 2; //只有"."和".."两个目录项就是空目录
+}
+
+/* 在父目录中删除空的子目录, 参数child_dir应该已经是空目录了，这里不会再if判断，只是ASSERT断言 */
+int32_t dir_remove(struct dir_st *parent_dir, struct dir_st *child_dir) {
+    struct inode_st *child_dir_inode = child_dir->inode;
+
+    ASSERT(dir_is_empty(child_dir));
+    for (int i = 1; i < 12; i++) {
+        // 除i_sectors[0]外其他扇区应该都为空
+        ASSERT(child_dir_inode->i_sectors[i] == 0);
+    }
+    ASSERT(child_dir_inode->i_sectors[12] == 0); // 应该没有间接块
+
+    void *io_buf = sys_malloc(SECTOR_SIZE * 2);
+    if (io_buf == NULL) {
+        k_printf("ERROR dir_remove: alloc memory failed!!!\n");
+        return -1;
+    }
+
+    if (! dir_delete_entry(cur_part, parent_dir, child_dir_inode->i_id, io_buf)) {
+        sys_free(io_buf);
+        return -1;
+    }
+    inode_delete(cur_part, child_dir_inode->i_id);
+    sys_free(io_buf);
+    return 0;
+}
+
 /* 在父目录的inode结构中寻找inode号为child_inode_id的子目录项的名字 */
 static bool search_child_filename(struct inode_st *parent_inode, int32_t child_inode_id, char *filename, void *io_buf) {
     struct partition_st *part = cur_part;
