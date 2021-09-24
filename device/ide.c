@@ -359,6 +359,7 @@ void ide_init() {
         // 获取两个硬盘的参数及分区信息
         for (int j = 0; j < 2; j++) {
             struct disk_st *hd = &channel->devices[j];
+            memset(hd, 0, sizeof(struct disk_st));
             hd->my_channel = channel;
             hd->dev_no = j;
             sprintf(hd->name, "sd%c", 'a' + i * 2 + j); // 第i通道的第j硬盘
