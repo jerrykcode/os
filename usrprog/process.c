@@ -15,7 +15,6 @@ extern void intr_exit(void);
 
 static void start_process(void *filename);
 static void create_usr_vaddr_btmp(struct task_st *usrprog); 
-static uint32_t *create_usr_page_table();
  
 /* 创建用户进程，filename为用户程序地址 */
 void process_execute(void *filename, char *name) {
@@ -71,7 +70,7 @@ static void create_usr_vaddr_btmp(struct task_st *usrprog) {
 }
 
 /* 创建用户进程的页表 */
-static uint32_t *create_usr_page_table() {
+uint32_t *create_usr_page_table() {
     uint32_t *page_table_vaddr = malloc_kernel_page(1); // 申请一页内核内存, 注意得到的是虚拟地址
     if (page_table_vaddr == NULL) {
         return NULL;
@@ -89,6 +88,10 @@ static uint32_t *create_usr_page_table() {
     page_table_vaddr[1023] = page_table_phy | PG_US_U | PG_RW_W | PG_P_1;
 
     return page_table_vaddr;
+}
+
+void delete_usr_page_table(uint32_t *page_table_vaddr) {
+    pages_free(page_table_vaddr, 1);
 }
 
 static void start_process(void *filename) {

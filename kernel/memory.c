@@ -256,6 +256,26 @@ void *malloc_page_with_vaddr(enum pool_flags pf, uint32_t vaddr) {
     return (void *)vaddr;
 }
 
+/* 为虚拟地址vaddr申请一页物理地址并安装到页表
+   与上面的malloc_page_with_vaddr函数不同，本函数不需要申请虚拟地址，
+   调用本函数时，虚拟地址已经存在，但是这个虚拟地址在页表中没有对应的物理地址
+   为fork中产生的子进程专用，子进程复制了父进程的位图，需要将与父进程相同的虚拟地址映射到另外的物理地址上 */
+void *malloc_page_for_vaddr_in_fork(enum pool_flags pf, uint32_t vaddr) {
+    struct pool *m_pool = (pf == PF_KERNEL ? &kernel_pool : &user_pool);
+
+    lock_acquire(&m_pool->lock);
+
+    void *page_phyaddr = palloc(m_pool);
+    if (page_phyaddr == NULL) {
+        lock_release(&m_pool->lock);
+        return NULL;
+    }
+
+    vaddr_page_map((void *)vaddr, page_phyaddr);
+    lock_release(&m_pool->lock);
+    return (void *)vaddr;
+}
+
 /* 返回虚拟地址对应的物理地址所在页的页表项的地址 */
 uint32_t *pte_ptr(uint32_t vaddr) {
     uint32_t pte = 0xffc00000; // 高10位置1，表示第1023个页目录项，指向页目录本身
@@ -374,7 +394,7 @@ static void virtual_pages_free(struct virtual_addr *m_vaddr, uint32_t vaddr, uin
 }
 
 /* 释放虚拟地址从vaddr开始的连续pages_num页内存 */
-static void pages_free(uint32_t vaddr, uint32_t pages_num) {
+void pages_free(uint32_t vaddr, uint32_t pages_num) {
     ASSERT(pages_num >= 1 && (vaddr % PAGE_SIZE == 0));
     uint32_t phyaddr;
     struct task_st *cur = current_thread();

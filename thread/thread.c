@@ -36,6 +36,11 @@ static pid_t alloc_pid() {
     return this_pid;
 }
 
+/* 为fork操作分配pid */
+pid_t fork_pid() {
+    return alloc_pid();
+}
+
 /* 将kernel中的main函数完善成为主线程 */
 static void make_main_thread() {
     struct task_st *main_task = current_thread();
@@ -62,6 +67,7 @@ struct task_st *current_thread() {
 
 void task_init(struct task_st *task, char *name, enum task_status status, uint32_t priority) {
     task->pid = alloc_pid();
+    task->parent_pid = -1; // 初始化默认为-1，即没有父进程
     strcpy(task->name, name);
     task->status = status;
     task->priority = priority;

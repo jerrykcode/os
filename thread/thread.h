@@ -78,6 +78,7 @@ struct thread_stack {
 struct task_st {
     uint32_t *self_stack; // 栈指针
     pid_t pid; // 任务id
+    pid_t parent_pid; // 父进程pid
     char name[20]; // 任务名
     enum task_status status; // 状态
     uint32_t ticks; // 剩余时间片
@@ -93,6 +94,7 @@ struct task_st {
 };
 
 void thread_environment_init();
+pid_t fork_pid();
 struct task_st *current_thread();
 void task_init(struct task_st *task, char *name, enum task_status status, uint32_t priority);
 struct task_st *thread_start(char *name, uint32_t priority, thread_func func, void *args);

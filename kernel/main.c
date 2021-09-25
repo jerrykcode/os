@@ -133,6 +133,14 @@ int main() {
     printf("current working directory: %s\n", buf);
 */
 
+    pid_t ret_pid = fork();
+    if (ret_pid) {
+        printf("I am father, my pid is %d; ret pid: %d\n", getpid(), ret_pid);
+    }
+    else {
+        printf("I am child, my pid is %s; ret pid: %d\n", getpid(), ret_pid);
+    }
+
     while (1) {
         //console_put_str("Main ");
     }

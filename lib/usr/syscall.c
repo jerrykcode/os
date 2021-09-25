@@ -93,3 +93,8 @@ void free(void *ptr) {
 void sleep(uint32_t ms) {
     _syscall1(SYS_SLEEP, ms);
 }
+
+/* fork系统调用 */
+pid_t fork() {
+    _syscall0(SYS_FORK);
+}

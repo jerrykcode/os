@@ -11,4 +11,7 @@
 
 void process_execute(void *filename, char *name);
 void process_active(struct task_st *thread);
+uint32_t *create_usr_page_table();
+void delete_usr_page_table(uint32_t *page_table_vaddr);
+
 #endif

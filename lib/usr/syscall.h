@@ -1,6 +1,7 @@
 #ifndef LIB_USR_SYSCALL_H__
 #define LIB_USR_SYSCALL_H__
 #include "stdint.h"
+#include "thread.h"
 
 enum SYSCALL_NR {
     SYS_GETPID,
@@ -8,7 +9,8 @@ enum SYSCALL_NR {
     SYS_READ,
     SYS_MALLOC,
     SYS_FREE,
-    SYS_SLEEP
+    SYS_SLEEP,
+    SYS_FORK
 };
 
 #define SYSCALL_NR 2
@@ -19,5 +21,6 @@ uint32_t read(int32_t fd, void *dest, uint32_t count);
 void *malloc(uint32_t size);
 void free(void *ptr);
 void sleep(uint32_t ms);
+pid_t fork();
 
 #endif
