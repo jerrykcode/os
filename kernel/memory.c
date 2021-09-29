@@ -9,7 +9,7 @@
 #include "list.h"
 #include "global.h"
 #include "asm.h"
-#include "stdio-kernel.h"
+
 #define MEM_BITMAP_BASE 0xc009a000
 
 #define K_HEAP_START    0xc0100000
@@ -137,11 +137,6 @@ static void *vaddr_alloc(enum pool_flags pf, uint32_t page_num) {
             bitmap_setbit(&cur->usrprog_vaddr.vaddr_btmp, bit_idx + i, BTMP_MEM_USED);
         vaddr_start = cur->usrprog_vaddr.vaddr_start + bit_idx * PAGE_SIZE;
     }
-//k_printf("alloc virtual addr 0x%x\n", vaddr_start);
-if (0x5848000 == vaddr_start) {
-    put_str("alloc vaddr 0x5848000\n");
-    while (1);
-}
     return (void *)vaddr_start;
 }
 

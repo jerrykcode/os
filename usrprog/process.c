@@ -10,7 +10,6 @@
 #include "global.h"
 #include "stddef.h"
 #include "string.h"
-#include "stdio-kernel.h"
 
 extern void intr_exit(void);
 
@@ -63,12 +62,10 @@ void process_active(struct task_st *thread) {
 /* 为用户进程创建虚拟地址位图 */
 static void create_usr_vaddr_btmp(struct task_st *usrprog) {
     usrprog->usrprog_vaddr.vaddr_start = USR_VADDR_START;
-k_printf("new process vaddr_start: %d\n", usrprog->usrprog_vaddr.vaddr_start);
     uint32_t btmp_page_num = DIV_ROUND_UP((0xc0000000 - USR_VADDR_START) / PAGE_SIZE / 8, PAGE_SIZE);
     // 申请的是内核内存, 用户进程不能直接访问到
     usrprog->usrprog_vaddr.vaddr_btmp.bits = malloc_kernel_page(btmp_page_num);
     usrprog->usrprog_vaddr.vaddr_btmp.btmp_bytes_len = (0xc0000000 - USR_VADDR_START) / PAGE_SIZE / 8;
-k_printf("new process vaddr btmp_bytes_len: %d\n", usrprog->usrprog_vaddr.vaddr_btmp.btmp_bytes_len);
     bitmap_init(&usrprog->usrprog_vaddr.vaddr_btmp, BTMP_MEM_FREE);
 }
 
