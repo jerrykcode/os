@@ -5,6 +5,8 @@
 #include "process.h"
 #include "file.h"
 #include "debug.h"
+#include "interrupt.h"
+#include "asm.h"
 
 extern void intr_exit(void);
 
@@ -15,6 +17,7 @@ static pid_t update_stack0(struct task_st *child_thread) {
     child_thread->ticks = child_thread->priority; // 时间片充满
     child_thread->thread_node.pre = child_thread->thread_node.next = NULL;
     child_thread->thread_ready_node.pre = child_thread->thread_ready_node.next = NULL;
+    mem_block_desc_init(child_thread->usrprog_mem_block_descs);
     return child_thread->pid;
 }
 
@@ -31,8 +34,8 @@ static void update_page_table(struct task_st *child_thread, struct task_st *pare
     for (int i = 0; i < btmp_bytes_len; i++) {
         if (bits[i]) {
             for (int j = 0; j < 8; j++) {
-                if (bits[i] & (1 << j)) {
-                    vaddr = (i << 3 + (7 - j)) * PAGE_SIZE + vaddr_start; // 使用的一个虚拟地址
+                if ((bits[i] >> (7 - j)) & 1) {
+                    vaddr = ((i << 3)+ j) * PAGE_SIZE + vaddr_start; // 使用的一个虚拟地址
                     memcpy(buf_page, vaddr, PAGE_SIZE);
                     process_active(child_thread); // 改动，让cr3寄存器指向子进程的页表
                     // 为子进程的虚拟地址vaddr申请一页物理地址并安装到子进程的页表
@@ -46,21 +49,23 @@ static void update_page_table(struct task_st *child_thread, struct task_st *pare
     }
 }
 
+void child_process_func() {
+    struct task_st *cur = current_thread();
+    intr_enable();
+    asm volatile ("mov %0, %%esp; jmp intr_exit" : : "g"((uint32_t)cur + PAGE_SIZE - sizeof(struct intr_stack)) : "memory");
+}
+
 static void update_intr_stack(struct task_st *child_thread) {
     struct intr_stack *stack = (struct intr_stack *)((uint32_t)child_thread + PAGE_SIZE - sizeof(struct intr_stack)); // 中断栈
     stack->eax = 0; // 退出中断后eax为0，也就是函数返回值为0，对fork来说表示子进程
 
-    *((uint32_t *)stack - 1) = intr_exit; // ret
-    *((uint32_t *)stack - 2) = 0;         // esi
-    *((uint32_t *)stack - 3) = 0;         // edi
-    *((uint32_t *)stack - 4) = 0;         // ebx
-    *((uint32_t *)stack - 5) = 0;         // ebp
+    *((uint32_t *)stack - 1) = (uint32_t)child_process_func; // ret
+    *((uint32_t *)stack - 2) = 0;                            // esi
+    *((uint32_t *)stack - 3) = 0;                            // edi
+    *((uint32_t *)stack - 4) = 0;                            // ebx
+    *((uint32_t *)stack - 5) = 0;                            // ebp
 
     child_thread->self_stack = (uint32_t *)stack - 5; // 栈指针
-
-    // 加入就绪队列
-    list_push_back(&threads_all, &child_thread->thread_node);
-    list_push_back(&threads_ready, &child_thread->thread_ready_node);
 }
 
 static void update_inode_open_cnts(struct task_st *thread) {
@@ -77,6 +82,7 @@ pid_t sys_fork(void) {
     struct task_st *child_thread = malloc_kernel_page(1); // 申请一页内核内存作为子进程的内核栈
     if (child_thread == NULL)
         return -1;
+    ASSERT(intr_get_status() == INTR_OFF);
     uint32_t rollback = 0;
     memcpy(child_thread, parent_thread, PAGE_SIZE); // 父进程的内核栈内容复制给子进程的内核栈
     pid_t child_pid = update_stack0(child_thread); // 更新子进程内核栈的属性
@@ -100,11 +106,18 @@ pid_t sys_fork(void) {
         goto ROLLBACK;
     }
     update_page_table(child_thread, parent_thread, buf); // 为子进程更新页表
+    void *page_table_backup = parent_thread->page_table;
+    parent_thread->page_table = NULL;
     pages_free(buf, 1);
+    parent_thread->page_table = page_table_backup;
 
-    update_intr_stack(child_thread); // 为子进程更新其内核栈顶部的中断内容，并加入就绪队列
+    update_intr_stack(child_thread); // 为子进程更新其内核栈顶部的中断内容
 
     update_inode_open_cnts(child_thread); // 更新inode打开计数
+
+    // 加入就绪队列
+    list_push_front(&threads_all, &child_thread->thread_node);
+    list_push_front(&threads_ready, &child_thread->thread_ready_node);
     return child_pid;
 
     // 出现错误才会执行回滚操作

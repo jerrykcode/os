@@ -14,6 +14,7 @@
 #include "dir.h"
 #include "string.h"
 
+void init(void);
 void thread_1(void *);
 void thread_2(void *);
 void usrprog_1(void);
@@ -51,20 +52,21 @@ int main() {
     put_int_hex(0x00000000);
 
     init_all();
-    
-    process_execute(usrprog_1, "usr1");
-    process_execute(usrprog_2, "usr2");
+    process_execute(init, "init");   
+ 
+//    process_execute(usrprog_1, "usr1");
+//    process_execute(usrprog_2, "usr2");
 
     asm volatile("sti");
 
     thread_start("thread_A", 31, thread_1, " arg A "); 
     thread_start("thread_B", 31, thread_2, " thread B ");
-    thread_start("thread_C", 31, thread_2, " thread C ");
+//    thread_start("thread_C", 31, thread_2, " thread C ");
     
-    char buf[MAX_PATH_LEN] = {0};
+/*    char buf[MAX_PATH_LEN] = {0};
 
     int32_t fd = sys_open("/file0", O_CREATE|O_RW);
-/*    printf("    open file with fd:%d\n", fd);
+    printf("    open file with fd:%d\n", fd);
     sys_write(fd, "hello, world!\n", 14);
     sys_read(fd, buf, 14);
     printf("read form fd:%d: %s", fd, buf);
@@ -82,7 +84,7 @@ int main() {
     printf("    close file with fd:%d\n", fd);
 
     printf("/file0 delete %s!\n", sys_unlink("/file0") == 0 ? "success" : "fail");
-*/
+
     printf("\nmkdir /dir0 %s\n", sys_mkdir("/dir0/") == 0 ? "success" : "fail");
     fd = sys_open("/dir0/f", O_CREATE | O_RW);
     printf("open(create) file /dir0/f with fd:%d\n", fd);
@@ -95,7 +97,7 @@ int main() {
 
     sys_open("/dir0/test", O_CREATE | O_RW);
     sys_open("/dir0/zzf", O_CREATE | O_RW);
-/*
+*
     sys_mkdir("/dir0/d1/");
     sys_mkdir("/dir0/d1/d2/");
     sys_mkdir("/dir0/d1/zzf/");
@@ -104,7 +106,7 @@ int main() {
     sys_getcwd(buf, MAX_PATH_LEN);
 
     printf("current working directory: %s\n", buf);
-*/
+*
     struct dir_st *dir = sys_opendir("/dir0");
     printf("open dir /dir0 %s\n", dir ? "success" : "fail");
     struct dir_entry_st *entry;
@@ -116,7 +118,7 @@ int main() {
         printf(" {%s}\n", entry->filename);
     sys_closedir(dir);
     printf("close dir!");
-/*
+*
     printf("change dir %s\n", sys_chdir("/dir0/d1/d2") == 0 ? "success" : "fail");
     memset(buf, 0, MAX_PATH_LEN);
     sys_getcwd(buf, MAX_PATH_LEN);
@@ -133,18 +135,23 @@ int main() {
     printf("current working directory: %s\n", buf);
 */
 
-    pid_t ret_pid = fork();
-    if (ret_pid) {
-        printf("I am father, my pid is %d; ret pid: %d\n", getpid(), ret_pid);
-    }
-    else {
-        printf("I am child, my pid is %s; ret pid: %d\n", getpid(), ret_pid);
-    }
 
     while (1) {
         //console_put_str("Main ");
     }
     return (0);
+}
+
+void init(void) {
+    pid_t ret_pid = fork();
+    if (ret_pid) {
+        printf("I am father, my pid is %d; ret pid: %d\n", getpid(), ret_pid);
+        while (1);
+    }
+    else {
+        printf("I am child, my pid is %d; ret pid: %d\n", getpid(), ret_pid);
+        while (1);
+    }
 }
 
 void thread_1(void *arg) {
