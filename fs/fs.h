@@ -41,6 +41,7 @@ int32_t sys_open(const char *pathname, uint8_t flags);
 int32_t sys_close(int32_t fd);
 int32_t sys_write(int32_t fd, const void *buf, uint32_t count);
 int32_t sys_read(int32_t fd, void *dest, uint32_t count);
+void sys_putchar(char ch);
 int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence);
 int32_t sys_unlink(const char *pathname);
 int32_t sys_mkdir(const char *pathname);

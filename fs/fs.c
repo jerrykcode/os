@@ -14,6 +14,8 @@
 #include "debug.h"
 #include "list.h"
 #include "thread.h"
+#include "keyboard.h"
+#include "console.h"
 
 #define SUPER_BLOCK_MAGIC_FILE_SYS  0x20210819
 
@@ -432,8 +434,27 @@ int32_t sys_read(int32_t fd, void *dest, uint32_t count) {
         k_printf("sys_read: error fd: %d\n", fd);
         return -1;
     }
+    else if (fd == stdout_fd) {
+        k_printf("sys_read: can't read from stdout!\n");
+        return -1;
+    }
+    else if (fd == stderr_fd) {
+        k_printf("sys_read: can't read from stderr!\n");
+        return -1;
+    }
+    else if (fd == stdin_fd) {
+        char *buf = (char *)dest;
+        for (int i = 0; i < count; i++) {
+            buf[i] = ioqueue_getchar(&ioqueue);
+        }
+        return count;
+    }
     int32_t g_fd = fd_local2global(fd);
     return file_read(&file_table[g_fd], dest, count);
+}
+
+void sys_putchar(char ch) {
+    console_put_char(ch);
 }
 
 /* 重置用于文件读写操作的偏移指针，成功返回新的偏移量，失败返回-1 */

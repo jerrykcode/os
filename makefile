@@ -6,8 +6,8 @@ loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
 OBJS = main.o debug.o init.o timer.o syscall-init.o ide.o stdio.o stdio-kernel.o syscall.o interrupt.o thread.o process.o fork.o \
-	fs.o file.o inode.o dir.o memory.o console.o keyboard.o ioqueue.o sync.o bitmap.o tss.o string.o list.o print.o kernel.o \
-	switch.o
+	fs.o file.o inode.o dir.o memory.o console.o keyboard.o shell.o ioqueue.o sync.o bitmap.o tss.o string.o list.o print.o \
+	kernel.o switch.o
 
 kernel.bin: $(OBJS)
 	ld -Ttext 0xc0001500 -e main -o $@ $^
@@ -22,9 +22,10 @@ switch.o: thread/switch.S
 
 # c
 CFLAGS += -std=c99 -fno-stack-protector
-INCLUDE = -I lib/kernel/ -I lib/usr -I lib/ -I kernel/ -I device/ -I thread/ -I usrprog/ -I fs/
+INCLUDE = -I lib/kernel/ -I lib/usr -I lib/ -I kernel/ -I device/ -I thread/ -I usrprog/ -I fs/ -I shell/
 main.o: kernel/main.c lib/kernel/print.h kernel/init.h kernel/memory.h lib/kernel/asm.h thread/thread.h kernel/debug.h \
-	device/keyboard.h device/ioqueue.h usrprog/process.h usrprog/syscall-init.h lib/usr/syscall.h lib/stdio.h fs/dir.h
+	device/keyboard.h device/ioqueue.h usrprog/process.h usrprog/syscall-init.h lib/usr/syscall.h lib/stdio.h fs/dir.h \
+	shell/shell.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 init.o: kernel/init.c kernel/init.h kernel/memory.h kernel/interrupt.h device/timer.h lib/kernel/print.h \
 	device/console.h device/keyboard.h usrprog/tss.h usrprog/syscall-init.h device/ide.h fs/fs.h
@@ -81,7 +82,7 @@ ide.o: device/ide.c device/ide.h thread/sync.h lib/stdio.h lib/kernel/stdio-kern
 	kernel/debug.h lib/string.h kernel/global.h lib/kernel/bitmap.h lib/kernel/io.h device/timer.h lib/stddef.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 fs.o: fs/fs.c fs/fs.h fs/super_block.h fs/inode.h fs/dir.h device/ide.h kernel/memory.h lib/string.h lib/kernel/stdio-kernel.h \
-	kernel/global.h lib/kernel/bitmap.h kernel/debug.h thread/thread.h fs/file.h thread/thread.h
+	kernel/global.h lib/kernel/bitmap.h kernel/debug.h thread/thread.h fs/file.h thread/thread.h device/keyboard.h device/console.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 file.o: fs/file.c fs/file.h fs/fs.h fs/dir.h fs/inode.h fs/super_block.h device/ide.h lib/kernel/stdio-kernel.h lib/stdint.h \
 	lib/stddef.h lib/kernel/list.h thread/thread.h kernel/interrupt.h
@@ -91,6 +92,8 @@ inode.o: fs/inode.c fs/inode.h lib/stdint.h lib/stddef.h lib/kernel/list.h fs/fs
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 dir.o: fs/dir.c fs/dir.h lib/stdint.h lib/stddef.h fs/inode.h fs/fs.h device/ide.h fs/super_block.h kernel/memory.h\
 	lib/string.h kernel/debug.h lib/kernel/stdio-kernel.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+shell.o: shell/shell.c shell/shell.h lib/stdio.h lib/string.h lib/usr/syscall.h fs/file.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 

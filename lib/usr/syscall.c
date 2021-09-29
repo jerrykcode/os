@@ -79,6 +79,16 @@ uint32_t read(int32_t fd, void *dest, uint32_t count) {
     return _syscall3(SYS_READ, fd, dest, count);
 }
 
+/* 输出一个字符到控制台stdout */
+void putchar(char ch) {
+    _syscall1(SYS_PUTCHAR, ch);
+}
+
+/* 清空屏幕 */
+void clear() {
+   _syscall0(SYS_CLEAR);
+}
+
 /* 申请size字节内存 */
 void *malloc(uint32_t size) {
     return _syscall1(SYS_MALLOC, size);

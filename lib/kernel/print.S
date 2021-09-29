@@ -266,3 +266,32 @@ set_cursor:
     pop ebx
     pop eax
     ret
+
+; ----------------------------------------------------
+; cls_screen函数
+; 功能 清空屏幕
+; ----------------------------------------------------
+global cls_screen
+cls_screen:
+    push eax
+    push ebx
+    push ecx
+
+    mov ax, SELECTOR_VIDEO
+    mov gs, ax
+    mov ebx, 0
+    mov ecx, 80*25
+.cls:
+    mov word [gs:ebx], 0x0720
+    add ebx, 2
+    loop .cls
+
+    push 0
+    call set_cursor
+    add esp, 4
+
+    pop ecx
+    pop ebx
+    pop eax
+
+    ret

@@ -13,6 +13,7 @@
 #include "fs.h"
 #include "dir.h"
 #include "string.h"
+#include "shell.h"
 
 void init(void);
 void thread_1(void *);
@@ -59,8 +60,8 @@ int main() {
 
     asm volatile("sti");
 
-    thread_start("thread_A", 31, thread_1, " arg A "); 
-    thread_start("thread_B", 31, thread_2, " thread B ");
+//    thread_start("thread_A", 31, thread_1, " arg A "); 
+//    thread_start("thread_B", 31, thread_2, " thread B ");
 //    thread_start("thread_C", 31, thread_2, " thread C ");
     
 /*    char buf[MAX_PATH_LEN] = {0};
@@ -150,7 +151,8 @@ void init(void) {
     }
     else {
         printf("I am child, my pid is %d; ret pid: %d\n", getpid(), ret_pid);
-        while (1);
+        clear();
+        shell();
     }
 }
 
