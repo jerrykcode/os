@@ -21,14 +21,30 @@ static void print_prompt() {
 static void read_cmd() {
     char *pos = cmd;
     while (read(stdin_fd, pos, 1) != -1) {
-        //putchar(*pos);
+        if ((pos == cmd) && (*pos == '\b'))
+            continue; 
+        putchar(*pos);
         switch (*pos) {
             case '\n':
             case '\r':
                 *pos = 0;
                 return;
             case '\b':
-                if (pos) pos--;
+                pos--;
+                break;
+            case 'l' - 'a': // ctrl + l 快捷键
+                *pos = 0;
+                clear(); // 清屏
+                print_prompt(); // 输出提示
+                printf(cmd); // 重新输出刚才输入的内容
+                break;
+            case 'u' - 'a': // ctrl + u 快捷键
+                while (pos != cmd) {
+                    *(--pos) = 0;
+                    putchar('\b');
+                }
+                *pos = 0;
+                putchar('\b');
                 break;
             default:
                 pos++;

@@ -203,7 +203,13 @@ static void intr_keyboard_handler() {
     }
 
     char ch = shift_table[scancode & 0xff][shift_act];
-    put_char(ch);
+
+    /* 对快捷键 ctrl + l 以及 ctrl + u 进行处理 */
+    if ((ch == 'l' && ctrl_down) || (ch == 'u' && ctrl_down))
+        ch -= 'a'; // - 'a'之后得到的值较小，在ascii码表中属于不可见字符部分，故之后的put_char不会输出内容
+    /* 快捷键特殊处理结束 */
+
+    //put_char(ch); ---> 这里先不输出
     ioqueue_putchar(&ioqueue, ch);
 }
 
