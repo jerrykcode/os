@@ -108,3 +108,59 @@ void sleep(uint32_t ms) {
 pid_t fork() {
     _syscall0(SYS_FORK);
 }
+
+char *getcwd(char *buf, uint32_t size) {
+    return _syscall2(SYS_GETCWD, buf, size);
+}
+
+int32_t open(char*pathname, uint8_t flags) {
+    return _syscall2(SYS_OPEN, pathname, flags);
+}
+
+int32_t close(int32_t fd) {
+    return _syscall1(SYS_CLOSE, fd);
+}
+
+int32_t lseek(int32_t fd, int32_t offset, uint8_t whence) {
+    return _syscall3(SYS_LSEEK, fd, offset, whence);
+}
+
+int32_t unlink(const char *pathname) {
+    return _syscall1(SYS_UNLINK, pathname);
+}
+
+int32_t mkdir(const char *pathname) {
+    return _syscall1(SYS_MKDIR, pathname);
+}
+
+struct dir_st *opendir(const char *name) {
+    return _syscall1(SYS_OPENDIR, name);
+}
+
+int32_t closedir(struct dir_st *dir) {
+    return _syscall1(SYS_CLOSEDIR, dir);
+}
+
+int32_t rmdir(const char *pathname) {
+    return _syscall1(SYS_RMDIR, pathname);
+}
+
+int32_t chdir(const char *path) {
+    return _syscall1(SYS_CHDIR, path);
+}
+
+struct dir_entry_st *readdir(struct dir_st *dir) {
+    return _syscall1(SYS_READDIR, dir);
+}
+
+void rewinddir(struct dir_st *dir) {
+    _syscall1(SYS_REWINDDIR, dir);
+}
+
+int32_t stat(const char *path, struct stat_st *stat) {
+    return _syscall2(SYS_STAT, path, stat);
+}
+
+void ps() {
+    _syscall0(SYS_PS);
+}

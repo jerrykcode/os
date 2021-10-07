@@ -404,6 +404,31 @@ int32_t sys_close(int32_t fd) {
     return result;
 }
 
+/* 将文件属性填充入stat, 成功返回0， 失败返回-1 */
+int32_t sys_stat(const char *path, struct stat_st *stat) {
+    if (strcmp(path, "/") == 0 || strcmp(path, "/.") == 0 || strcmp(path, "/..") == 0) { // 根目录
+        stat->inode_id = 0;
+        stat->file_size = root_dir.inode->i_id;
+        stat->file_type = FT_DIRECTORY;
+    }
+    int32_t result = -1; // init
+    struct path_search_record record;
+    int32_t inode_id = search_file(path, &record);
+    if (inode_id != -1) {
+        stat->inode_id = inode_id;
+        stat->file_type = record.file_type;
+        struct inode_st *inode = inode_open(cur_part, inode_id);
+        stat->file_size = inode->i_size;
+        inode_close(cur_part, inode);
+        result = 0;
+    }
+    else {
+        k_printf("sys_stat: %s not exist\n", path);
+    }
+    dir_close(record.parent_dir);
+    return result;
+}
+
 /* 向文件描述符fd写入buf处count字节的数据 */
 int32_t sys_write(int32_t fd, const void *buf, uint32_t count) {
     if (fd < 0) {

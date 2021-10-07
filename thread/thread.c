@@ -11,6 +11,7 @@
 #include "debug.h"
 #include "interrupt.h"
 #include "process.h"
+#include "global.h"
 
 struct lock_st pid_lock;
 
@@ -208,4 +209,101 @@ void thread_yield() {
 
 struct task_st *node_to_thread(list_node node) {
     return (struct task_st *)((uint32_t)node & 0xfffff000);
+}
+
+static void pad_print(uint32_t pad_len, void *ptr, char format) {
+    uint32_t str_len;
+    int16_t val16;
+    int32_t val32;
+    switch(format) {
+        case 's':
+            k_printf("%s", (char *)ptr);
+            str_len = strlen((char *)ptr);
+            break;
+        case 'd':
+            val16 = *(int16_t *)ptr;
+            k_printf("%d", val16);
+            if (val16 == 0) {
+                str_len = 1;
+                break;
+            }
+            str_len = 0;
+            while (val16) {
+                val16 /= 10;
+                str_len++;
+            }
+            break;
+        case 'x':
+            val32 = *(int32_t *)ptr;
+            k_printf("%x", val32);
+            if (val32 == 0) {
+                str_len = 1;
+                break;
+            }
+            str_len = 0;
+            while (val32) {
+                val32 /= 16;
+                str_len++;
+            }
+            break;
+        default: return;
+    }
+    for ( ; str_len < pad_len; str_len++)
+        console_put_char(' ');
+}
+
+/* list_traversal回调函数，用于输出线程的信息 */
+static bool thread_info(list_node node, int arg) {
+    struct task_st *thread = elem2entry(struct task_st, thread_node, node);
+
+    uint32_t pad_len = 16;
+    pad_print(pad_len, thread->pid, 'd');
+
+    if (thread->parent_pid != -1)
+        pad_print(pad_len, thread->parent_pid, 'd');
+    else
+        pad_print(pad_len, "NULL", 's');
+
+    switch (thread->status) {
+        case TASK_RUNNING:
+            pad_print(pad_len, "RUNNING", 's');
+            break;
+        case TASK_READY:
+            pad_print(pad_len, "READY", 's');
+            break;
+        case TASK_BLOCKED:
+            pad_print(pad_len, "BLOCKED", 's');
+            break;
+        case TASK_WAITING:
+            pad_print(pad_len, "WAITING", 's');
+            break;
+        case TASK_HANGING:
+            pad_print(pad_len, "HANGING", 's');
+            break;
+        case TASK_DIED:
+            pad_print(pad_len, "DIED", 's');
+            break;
+        default: break;
+    }
+
+    pad_print(pad_len, &thread->priority, 'x');
+    pad_print(pad_len, &thread->ticks, 'x');
+
+    pad_print(pad_len, thread->name, 's');
+
+    console_put_char('\n');
+
+    return false; // 迎合list_traversal函数
+}
+
+void sys_ps() {
+    uint32_t pad_len = 16;
+    pad_print(pad_len, "PID", 's');
+    pad_print(pad_len, "PPID", 's');
+    pad_print(pad_len, "STATUS", 's');
+    pad_print(pad_len, "PRIORITY", 's');
+    pad_print(pad_len, "TICKS", 's');
+    pad_print(pad_len, "NAME", 's');
+    console_put_char('\n');
+    list_traversal(&threads_all, thread_info, 0);
 }

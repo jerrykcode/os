@@ -31,6 +31,13 @@ enum whence {
     SEEK_END
 };
 
+/* 文件属性结构体 */
+struct stat_st {
+    int32_t inode_id;
+    uint32_t file_size;
+    enum file_types file_type;
+};
+
 struct dir_entry_st;
 struct dir_st;
 
@@ -39,6 +46,7 @@ extern struct partition_st *cur_part;
 int32_t path_depth(const char *pathname);
 int32_t sys_open(const char *pathname, uint8_t flags);
 int32_t sys_close(int32_t fd);
+int32_t sys_stat(const char *path, struct stat_st *stat);
 int32_t sys_write(int32_t fd, const void *buf, uint32_t count);
 int32_t sys_read(int32_t fd, void *dest, uint32_t count);
 void sys_putchar(char ch);
