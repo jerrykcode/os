@@ -3,6 +3,7 @@
 #include "syscall.h"
 #include "string.h"
 #include "file.h"
+#include "buildin_cmd.h"
 
 #define CMD_LEN 128
 #define MAX_ARGC 16
@@ -80,6 +81,7 @@ void shell() {
     cwd[0] = '/';
     strcpy(usrname, "zzf");
     strcpy(hostname, "localhost");
+    char buf[MAX_PATH_LEN]= {0};
     while (1) {
         print_prompt();
         memset(cmd, 0, CMD_LEN);
@@ -90,7 +92,9 @@ void shell() {
         int32_t argc = parse_cmd();
         for (int i = 0; i < argc; i++) {
             if (i) putchar(' ');
-            printf("%s",argv[i]);
+            memset(buf, 0, MAX_PATH_LEN);
+            make_clear_abs_path(argv[i], buf);
+            printf("%s", buf); // TEST
         }
         printf("\n");
     }
