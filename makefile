@@ -6,8 +6,8 @@ loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
 OBJS = main.o debug.o init.o timer.o syscall-init.o ide.o stdio.o stdio-kernel.o syscall.o interrupt.o thread.o process.o fork.o \
-	fs.o file.o inode.o dir.o memory.o console.o keyboard.o shell.o ioqueue.o sync.o bitmap.o tss.o string.o list.o print.o \
-	kernel.o switch.o buildin_cmd.o
+	fs.o file.o inode.o dir.o memory.o console.o keyboard.o shell.o buildin_cmd.o ioqueue.o sync.o bitmap.o tss.o string.o \
+	list.o print.o kernel.o switch.o 
 
 kernel.bin: $(OBJS)
 	ld -Ttext 0xc0001500 -e main -o $@ $^
@@ -95,7 +95,8 @@ dir.o: fs/dir.c fs/dir.h lib/stdint.h lib/stddef.h fs/inode.h fs/fs.h device/ide
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 shell.o: shell/shell.c shell/shell.h shell/buildin_cmd.h lib/stdio.h lib/string.h lib/usr/syscall.h fs/file.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
-buildin_cmd.o: shell/buildin_cmd.c shell/buildin_cmd.h lib/string.h lib/usr/syscall.h lib/stddef.h fs/fs.h
+buildin_cmd.o: shell/buildin_cmd.c shell/buildin_cmd.h lib/string.h lib/usr/syscall.h lib/stddef.h lib/stdbool.h lib/stdio.h\
+ 	fs/fs.h fs/dir.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 

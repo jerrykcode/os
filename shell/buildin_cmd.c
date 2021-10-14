@@ -2,7 +2,10 @@
 #include "string.h"
 #include "syscall.h"
 #include "stddef.h"
+#include "stdbool.h"
+#include "stdio.h"
 #include "fs.h"
+#include "dir.h"
 
 /* 将路径中的.及..替换为真实路径
    参数为绝对路径 */
@@ -59,4 +62,93 @@ void make_clear_abs_path(const char *original_path, char *final_path) {
         original_path_abs = buf;
     }
     wash_path(original_path_abs, final_path);
+}
+
+void buildin_ls(int argc, char *argv[]) {
+    bool long_info = false;
+    bool show_all = false;
+    char *path = NULL;
+    for (int i = 1; i < argc; i++) { // 枚举argv
+        if (strcmp(argv[i], "--help") == 0) {
+            printf("Usage: ls [OPTION]... [FILE]...\n");
+            printf("List information about the FILEs (the current directory by default).\n\n");
+            printf("Mandatory arguments to long options are mandatory for short options too.\n");
+            printf("  -a, --all                  do not ignore entries starting with .\n");
+            printf("  -l                         use a long listing format\n");
+            return;
+        }
+        if (strcmp(argv[i], "--all") == 0) {
+            show_all = true;
+            continue;
+        }
+        if (argv[i][0] == '-') { // -开头的是选项
+            switch (argv[i][1]) {
+                case 'l': // -l
+                    long_info = true;
+                    break;
+                case 'a': // -a
+                    show_all = true;
+                    break;
+                default:
+                    printf("ls: invalid option -- \'%c\'\nTry \'ls --help\' for more information\n", argv[i][1]);
+                    return;
+            }
+        }
+        else {
+            if (path == NULL)
+                path = argv[i];
+            else {
+                printf("ls: only support listing one directory each time!\n");
+                return;
+            }
+        }
+    }
+    char wd[MAX_PATH_LEN] = {0}; // working directory
+    if (path) { // argv中传入了path
+        make_clear_abs_path(path, wd);
+    }
+    else {
+        getcwd(wd, MAX_PATH_LEN); // 使用当前路径
+    }
+    uint32_t wd_len = strlen(wd);
+
+    char ftype;
+    struct dir_st *pdir;
+    struct dir_entry_st *pdir_entry;
+    struct stat_st fstat;
+    stat(wd, &fstat);
+
+    switch (fstat.file_type) {
+        case FT_REGULAR: // 普通文件(非目录)
+            if (long_info) {
+                printf("- %d %d %s\n", fstat.inode_id, fstat.file_size, wd);
+            }
+            else {
+                printf("%s\n", wd);
+            }
+            break;
+        case FT_DIRECTORY: // 目录
+            pdir = opendir(wd);
+            while ((pdir_entry = readdir(pdir)) != NULL) { // 枚举目录项
+                if (pdir_entry->filename[0] == '.' && !show_all)
+                    continue;
+                if (long_info) { // 需要详细信息
+                    ftype = 'd';
+                    if (pdir_entry->f_type == FT_REGULAR)
+                        ftype = '-';
+                    wd[wd_len] = '/';
+                    wd[wd_len + 1] = 0;
+                    strcat(wd, pdir_entry->filename);
+                    stat(wd, &fstat);
+                    printf("%c %d %d %s\n", ftype, pdir_entry->inode_id, fstat.file_size, pdir_entry->filename);
+                }
+                else {
+                    printf("%s ", pdir_entry->filename);
+                }
+            }
+            if (!long_info)
+                putchar('\b'); // 删除末尾空格
+            closedir(pdir);
+        default: break;
+    } //switch
 }

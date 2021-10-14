@@ -90,11 +90,8 @@ void shell() {
             continue;
         // 处理cmd
         int32_t argc = parse_cmd();
-        for (int i = 0; i < argc; i++) {
-            if (i) putchar(' ');
-            memset(buf, 0, MAX_PATH_LEN);
-            make_clear_abs_path(argv[i], buf);
-            printf("%s", buf); // TEST
+        if (strcmp(argv[0], "ls") == 0) {
+            buildin_ls(argc, argv);
         }
         printf("\n");
     }
