@@ -128,7 +128,6 @@ struct inode_st *inode_open(struct partition_st *part, uint32_t inode_id) {
     // 复制到inode_found
     memcpy(inode_found, io_buf + inode_pos.off_size, sizeof(struct inode_st));
     sys_free(io_buf);
-
     inode_found->i_open_cnts = 1;
 
     // 加入打开的inode链表

@@ -70,10 +70,12 @@ static void update_intr_stack(struct task_st *child_thread) {
 
 static void update_inode_open_cnts(struct task_st *thread) {
     int32_t local_fd, global_fd;
-    for (local_fd = 0; local_fd < MAX_FILES_OPEN_PER_PROC; local_fd++) {
+    for (local_fd = 3; local_fd < MAX_FILES_OPEN_PER_PROC; local_fd++) {
         global_fd = thread->fd_table[local_fd];
         ASSERT(global_fd < MAX_FILE_OPEN);
-        file_table[global_fd].fd_inode->i_open_cnts++;
+        if (global_fd != -1) {
+            file_table[global_fd].fd_inode->i_open_cnts++;
+        }
     }
 }
 
@@ -112,7 +114,6 @@ pid_t sys_fork(void) {
     parent_thread->page_table = page_table_backup;
 
     update_intr_stack(child_thread); // 为子进程更新其内核栈顶部的中断内容
-
     update_inode_open_cnts(child_thread); // 更新inode打开计数
 
     // 加入就绪队列

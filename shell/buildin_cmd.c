@@ -70,11 +70,11 @@ void buildin_ls(int argc, char *argv[]) {
     char *path = NULL;
     for (int i = 1; i < argc; i++) { // 枚举argv
         if (strcmp(argv[i], "--help") == 0) {
-            printf("Usage: ls [OPTION]... [FILE]...\n");
-            printf("List information about the FILEs (the current directory by default).\n\n");
-            printf("Mandatory arguments to long options are mandatory for short options too.\n");
-            printf("  -a, --all                  do not ignore entries starting with .\n");
-            printf("  -l                         use a long listing format\n");
+            printf("Usage: ls [OPTION]... [FILE]..."); putchar("\n");
+            printf("List information about the FILEs (the current directory by default)."); printf("\n"); putchar('\n');
+            printf("Mandatory arguments to long options are mandatory for short options too."); putchar('\n');
+            printf("  -a, --all                  do not ignore entries starting with ."); putchar('\n');
+            printf("  -l                         use a long listing format"); putchar('\n');
             return;
         }
         if (strcmp(argv[i], "--all") == 0) {
@@ -90,7 +90,7 @@ void buildin_ls(int argc, char *argv[]) {
                     show_all = true;
                     break;
                 default:
-                    printf("ls: invalid option -- \'%c\'\nTry \'ls --help\' for more information\n", argv[i][1]);
+                    printf("ls: invalid option -- \'%c\'%cTry \'ls --help\' for more information%c", argv[i][1], '\n', '\n');
                     return;
             }
         }
@@ -98,7 +98,7 @@ void buildin_ls(int argc, char *argv[]) {
             if (path == NULL)
                 path = argv[i];
             else {
-                printf("ls: only support listing one directory each time!\n");
+                printf("ls: only support listing one directory each time!"); putchar('\n');
                 return;
             }
         }
@@ -121,10 +121,10 @@ void buildin_ls(int argc, char *argv[]) {
     switch (fstat.file_type) {
         case FT_REGULAR: // 普通文件(非目录)
             if (long_info) {
-                printf("- %d %d %s\n", fstat.inode_id, fstat.file_size, wd);
+                printf("- %d %d %s", fstat.inode_id, fstat.file_size, wd); putchar('\n');
             }
             else {
-                printf("%s\n", wd);
+                printf("%s", wd); putchar('\n');
             }
             break;
         case FT_DIRECTORY: // 目录
@@ -140,7 +140,7 @@ void buildin_ls(int argc, char *argv[]) {
                     wd[wd_len + 1] = 0;
                     strcat(wd, pdir_entry->filename);
                     stat(wd, &fstat);
-                    printf("%c %d %d %s\n", ftype, pdir_entry->inode_id, fstat.file_size, pdir_entry->filename);
+                    printf("%c %d %d %s", ftype, pdir_entry->inode_id, fstat.file_size, pdir_entry->filename); putchar('\n');
                 }
                 else {
                     printf("%s ", pdir_entry->filename);

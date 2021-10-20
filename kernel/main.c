@@ -63,8 +63,9 @@ int main() {
 //    thread_start("thread_A", 31, thread_1, " arg A "); 
 //    thread_start("thread_B", 31, thread_2, " thread B ");
 //    thread_start("thread_C", 31, thread_2, " thread C ");
-    
-/*    char buf[MAX_PATH_LEN] = {0};
+
+/*    
+    char buf[MAX_PATH_LEN] = {0};
 
     int32_t fd = sys_open("/file0", O_CREATE|O_RW);
     printf("    open file with fd:%d\n", fd);
@@ -98,7 +99,7 @@ int main() {
 
     sys_open("/dir0/test", O_CREATE | O_RW);
     sys_open("/dir0/zzf", O_CREATE | O_RW);
-*
+
     sys_mkdir("/dir0/d1/");
     sys_mkdir("/dir0/d1/d2/");
     sys_mkdir("/dir0/d1/zzf/");
@@ -107,7 +108,7 @@ int main() {
     sys_getcwd(buf, MAX_PATH_LEN);
 
     printf("current working directory: %s\n", buf);
-*
+
     struct dir_st *dir = sys_opendir("/dir0");
     printf("open dir /dir0 %s\n", dir ? "success" : "fail");
     struct dir_entry_st *entry;
@@ -119,7 +120,7 @@ int main() {
         printf(" {%s}\n", entry->filename);
     sys_closedir(dir);
     printf("close dir!");
-*
+
     printf("change dir %s\n", sys_chdir("/dir0/d1/d2") == 0 ? "success" : "fail");
     memset(buf, 0, MAX_PATH_LEN);
     sys_getcwd(buf, MAX_PATH_LEN);
@@ -134,8 +135,8 @@ int main() {
     memset(buf, 0, MAX_PATH_LEN);
     sys_getcwd(buf, MAX_PATH_LEN);
     printf("current working directory: %s\n", buf);
-*/
 
+*/
 
     while (1) {
         //console_put_str("Main ");
@@ -147,6 +148,7 @@ void init(void) {
     pid_t ret_pid = fork();
     if (ret_pid) {
         printf("I am father, my pid is %d; ret pid: %d\n", getpid(), ret_pid);
+
         while (1);
     }
     else {
@@ -186,7 +188,7 @@ void thread_2(void *arg) {
 }
 
 void usrprog_1() {
-    pid_t usr1_pid = getpid();
+/*    pid_t usr1_pid = getpid();
     for (int i = 0; i < 3; i++) {
         void *vaddr0 = malloc(256);
         void *vaddr1 = malloc(255);
@@ -197,6 +199,19 @@ void usrprog_1() {
         free(vaddr1);
         free(vaddr2);
     }
+*/
+    struct dir_st *dir = opendir("/dir0");
+    printf("open dir /dir0 %s\n", dir ? "success" : "fail");
+    struct dir_entry_st *entry;
+    while (entry = readdir(dir)) {
+        printf(" {%s}\n", entry->filename);
+    }
+    rewinddir(dir);
+    while (entry = readdir(dir))
+        printf(" {%s}\n", entry->filename);
+    closedir(dir);
+    printf("close dir!");
+
     while (1) {
     }
 }

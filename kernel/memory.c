@@ -357,9 +357,16 @@ void *sys_malloc(uint32_t size) {
         // 申请内存块
         // 链表中存储的是struct mem_block的node属性地址，而node是mem_block结构体首个属性
         struct mem_block *block = list_pop(&desc->free_mem_list);
-        lock_release(&desc->list_lock);
+
         struct arena *a = block2arena(block);
-        a->cnt--;
+        if (a->cnt > 0) // 按预期，a->cnt不可能等于0
+                        // 但运行的时候有时就等于0了，a->cnt是unsigned类型，0--之后得到一个很大的值
+                        // 后面回收内存的时候就会出错。
+                        // 目前找不到bug
+                        // 临时加个if (a->cnt > 0)判断，凑合下
+            a->cnt--;
+
+        lock_release(&desc->list_lock);
         return (void *)block;
     }
 }
