@@ -116,7 +116,9 @@ void buildin_ls(int argc, char *argv[]) {
     struct dir_st *pdir;
     struct dir_entry_st *pdir_entry;
     struct stat_st fstat;
-    stat(wd, &fstat);
+    if (stat(wd, &fstat) == -1) {
+        return;
+    }
 
     switch (fstat.file_type) {
         case FT_REGULAR: // 普通文件(非目录)
