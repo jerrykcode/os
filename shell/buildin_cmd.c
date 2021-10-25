@@ -64,6 +64,59 @@ void make_clear_abs_path(const char *original_path, char *final_path) {
     wash_path(original_path_abs, final_path);
 }
 
+void buildin_cd(int argc, char *argv[]) {
+    if (argc > 2) {
+        printf("cd: only support one argument!%c", '\n');
+        return;
+    }
+    char new_path[MAX_PATH_LEN] = {0};
+    if (argc == 1) {
+        // 只输入cd, 没有路径参数，则cd到根目录/
+        new_path[0] = '/';
+    }
+    else {
+        make_clear_abs_path(argv[1], new_path);
+    }
+    chdir(new_path);
+}
+
+void buildin_mkdir(int argc, char *argv[]) {
+    if (argc != 2) {
+        printf("mkdir: only support 2 arguments!%c", '\n');
+        return;
+    }
+    char new_dir_path[MAX_PATH_LEN] = {0};
+    make_clear_abs_path(argv[1], new_dir_path);
+    if (strcmp(new_dir_path, "/") != 0) {
+        mkdir(new_dir_path);
+    }
+}
+
+void buildin_rm(int argc, char *argv[]) {
+    if (argc != 2) {
+        printf("rm: only support 2 arguments!%c", '\n');
+        return;
+    }
+    char rm_path[MAX_PATH_LEN] = {0};
+    make_clear_abs_path(argv[1], rm_path);
+    if (strcmp(rm_path, "/") != 0) {
+        struct stat_st fstat;
+        if (stat(rm_path, &fstat) == -1)
+            return;
+
+        if (fstat.file_type == FT_REGULAR) {
+            unlink(rm_path);
+        }
+        else if (fstat.file_type == FT_DIRECTORY) {
+            rmdir(rm_path);
+        }
+        else {
+            printf("rm: unkown file type!%c", '\n');
+        }
+    }
+    else printf("rm: can not remove root directory!%c", '\n');
+}
+
 void buildin_ls(int argc, char *argv[]) {
     bool long_info = false;
     bool show_all = false;

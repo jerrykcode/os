@@ -93,6 +93,15 @@ void shell() {
         if (strcmp(argv[0], "ls") == 0) {
             buildin_ls(argc, argv);
         }
+        else if (strcmp(argv[0], "cd") == 0) {
+            buildin_cd(argc, argv);
+        }
+        else if (strcmp(argv[0], "mkdir") == 0) {
+            buildin_mkdir(argc, argv);
+        }
+        else if (strcmp(argv[0], "rm") == 0) {
+            buildin_rm(argc, argv);
+        }
         printf("\n");
     }
 }
