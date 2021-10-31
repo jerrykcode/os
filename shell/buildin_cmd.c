@@ -64,6 +64,36 @@ void make_clear_abs_path(const char *original_path, char *final_path) {
     wash_path(original_path_abs, final_path);
 }
 
+void buildin_pwd(int argc, char *argv[]) {
+    if (argc != 1) {
+        printf("pwd: no argument support!%c", '\n');
+        return;
+    }
+    char wd[MAX_PATH_LEN] = {0};
+    if (getcwd(wd, MAX_PATH_LEN) == NULL) {
+        printf("pwd: get current working directory failed!!!%c", '\n');
+        return;
+    }
+    printf("%s%c", wd, '\n');
+    return;
+}
+
+void buildin_ps(int argc, char *argv[]) {
+    if (argc != 1) {
+        printf("ps: no argument support!%c", '\n');
+        return;
+    }
+    ps();
+}
+
+void buildin_clear(int argc, char *argv[]) {
+    if (argc != 1) {
+        printf("clear: no argument support!%c", '\n');
+        return;
+    }
+    clear();
+}
+
 void buildin_cd(int argc, char *argv[]) {
     if (argc > 2) {
         printf("cd: only support one argument!%c", '\n');

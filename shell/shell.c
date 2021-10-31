@@ -102,6 +102,15 @@ void shell() {
         else if (strcmp(argv[0], "rm") == 0) {
             buildin_rm(argc, argv);
         }
+        else if (strcmp(argv[0], "pwd") == 0) {
+            buildin_pwd(argc, argv);
+        }
+        else if (strcmp(argv[0], "ps") == 0) {
+            buildin_ps(argc, argv);
+        }
+        else if (strcmp(argv[0], "clear") == 0) {
+            buildin_clear(argc, argv);
+        }
         printf("\n");
     }
 }
