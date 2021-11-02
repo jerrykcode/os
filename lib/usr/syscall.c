@@ -109,6 +109,10 @@ pid_t fork() {
     _syscall0(SYS_FORK);
 }
 
+int32_t execv(const char *path, const char *argv[]) {
+    return _syscall2(SYS_EXECV, path, argv);
+}
+
 char *getcwd(char *buf, uint32_t size) {
     return _syscall2(SYS_GETCWD, buf, size);
 }

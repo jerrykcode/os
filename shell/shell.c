@@ -81,7 +81,7 @@ void shell() {
     cwd[0] = '/';
     strcpy(usrname, "zzf");
     strcpy(hostname, "localhost");
-    char buf[MAX_PATH_LEN]= {0};
+    char path[MAX_PATH_LEN] = {0};
     while (1) {
         print_prompt();
         memset(cmd, 0, CMD_LEN);
@@ -110,6 +110,26 @@ void shell() {
         }
         else if (strcmp(argv[0], "clear") == 0) {
             buildin_clear(argc, argv);
+        }
+        else {
+            // 外部命令
+            memset(path, 0, MAX_PATH_LEN);
+            make_clear_abs_path(argv[0], path);
+            argv[0] = path;
+            struct stat_st file_stat;
+            memset(&file_stat, 0, sizeof(struct stat_st));
+            if (stat(argv[0], &file_stat) == -1) {
+                printf("can not access %s\n", argv[0]);
+            }
+
+            pid_t pid = fork();
+            if (pid) {
+                while (1) ;
+            }
+            else {
+                execv(argv[0], argv);
+                while (1);
+            }
         }
         printf("\n");
     }

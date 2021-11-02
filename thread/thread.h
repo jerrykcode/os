@@ -10,6 +10,7 @@ typedef void (*thread_func)(void *);
 
 #define STACK_MAGIC 0x20010201
 #define MAX_FILES_OPEN_PER_PROC 8
+#define TASK_NAME_LEN 20
 
 struct list_st threads_all;
 struct list_st threads_ready;
@@ -79,7 +80,7 @@ struct task_st {
     uint32_t *self_stack; // 栈指针
     pid_t pid; // 任务id
     pid_t parent_pid; // 父进程pid
-    char name[20]; // 任务名
+    char name[TASK_NAME_LEN]; // 任务名
     enum task_status status; // 状态
     uint32_t ticks; // 剩余时间片
     uint32_t priority; // 优先级，即初始ticks

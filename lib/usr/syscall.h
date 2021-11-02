@@ -13,6 +13,7 @@ enum SYSCALL_NR {
     SYS_FREE,
     SYS_SLEEP,
     SYS_FORK,
+    SYS_EXECV,
     SYS_GETCWD,
     SYS_OPEN,
     SYS_CLOSE,
@@ -29,7 +30,7 @@ enum SYSCALL_NR {
     SYS_PS
 };
 
-#define SYSCALL_NR 23
+#define SYSCALL_NR 24
 
 struct dir_st;
 struct stat_st;
@@ -43,6 +44,7 @@ void *malloc(uint32_t size);
 void free(void *ptr);
 void sleep(uint32_t ms);
 pid_t fork();
+int32_t execv(const char *path, const char *argv[]);
 char *getcwd(char *buf, uint32_t size);
 int32_t open(char*pathname, uint8_t flags);
 int32_t close(int32_t fd);
