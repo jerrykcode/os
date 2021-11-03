@@ -36,10 +36,12 @@ static void update_page_table(struct task_st *child_thread, struct task_st *pare
             for (int j = 0; j < 8; j++) {
                 if ((bits[i] >> (7 - j)) & 1) {
                     vaddr = ((i << 3)+ j) * PAGE_SIZE + vaddr_start; // 使用的一个虚拟地址
+
                     memcpy(buf_page, vaddr, PAGE_SIZE);
                     process_active(child_thread); // 改动，让cr3寄存器指向子进程的页表
                     // 为子进程的虚拟地址vaddr申请一页物理地址并安装到子进程的页表
                     malloc_page_for_vaddr_in_fork(PF_USER, vaddr);
+
                     memcpy(vaddr, buf_page, PAGE_SIZE);
                     // cr3寄存器重新指向父进程页表
                     process_active(parent_thread);

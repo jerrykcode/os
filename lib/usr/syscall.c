@@ -168,3 +168,7 @@ int32_t stat(const char *path, struct stat_st *stat) {
 void ps() {
     _syscall0(SYS_PS);
 }
+
+void debug_vaddr_start() {
+    _syscall0(DEBUG_VADDR_START);
+}

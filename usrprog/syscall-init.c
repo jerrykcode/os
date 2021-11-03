@@ -10,6 +10,7 @@
 #include "fs.h"
 #include "fork.h"
 #include "exec.h"
+#include "debug.h"
 
 typedef void *syscall;
 
@@ -43,6 +44,9 @@ void syscall_init() {
     syscall_table[SYS_STAT]       = sys_stat;
     syscall_table[SYS_PS]         = sys_ps;
 
+    /* 供调试使用的系统调用 */
+    syscall_table[DEBUG_VADDR_START] = debug_sys_vaddr_start;
+
     put_str("syscall_init finished");
 }
 
@@ -51,4 +55,17 @@ void syscall_init() {
 */
 uint32_t sys_getpid() {
     return current_thread()->pid;
+}
+
+
+void debug_sys_vaddr_start() {
+    int byte = current_thread()->usrprog_vaddr.vaddr_btmp.bits[0];
+    int bit = (byte >> 7) & 1;
+    void *vaddr = (void *)(current_thread()->usrprog_vaddr.vaddr_start);
+    uint32_t *pte = pte_ptr(vaddr);
+    uint32_t *pde = pde_ptr(vaddr);
+    if (bit) {
+        ASSERT(*pde & 0x00000001);
+        ASSERT(*pte & 0x00000001);
+    }
 }

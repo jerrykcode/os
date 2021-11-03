@@ -411,18 +411,19 @@ void pages_free(uint32_t vaddr, uint32_t pages_num) {
     struct task_st *cur = current_thread();
     struct virtual_addr *m_vaddr;
     struct lock_st *m_lock = NULL;
+    uint32_t page_vaddr = vaddr;
     if (cur->page_table) {
         // 用户进程
         m_vaddr = &cur->usrprog_vaddr;
         m_lock = &user_pool.lock;
         lock_acquire(m_lock);
         for (int i = 0; i < pages_num; i++) {
-            phyaddr = vaddr2phy(vaddr);
+            phyaddr = vaddr2phy(page_vaddr);
             // 确保phyaddr在用户内存池内
             ASSERT((phyaddr % PAGE_SIZE == 0) && phyaddr >= user_pool.phy_addr_start);
             phy_page_free(phyaddr);
-            vaddr_page_map_remove(vaddr);
-            vaddr += PAGE_SIZE;
+            vaddr_page_map_remove(page_vaddr);
+            page_vaddr += PAGE_SIZE;
         }
     }
     else {
@@ -431,13 +432,13 @@ void pages_free(uint32_t vaddr, uint32_t pages_num) {
         m_lock = &kernel_pool.lock;
         lock_acquire(m_lock);
         for (int i = 0; i < pages_num; i++) {
-            phyaddr = vaddr2phy(vaddr);
+            phyaddr = vaddr2phy(page_vaddr);
             // 确保phyaddr是内核内存
             ASSERT((phyaddr % PAGE_SIZE == 0) && phyaddr >= kernel_pool.phy_addr_start \
                 && phyaddr < user_pool.phy_addr_start);
             phy_page_free(phyaddr);
-            vaddr_page_map_remove(vaddr);
-            vaddr += PAGE_SIZE;
+            vaddr_page_map_remove(page_vaddr);
+            page_vaddr += PAGE_SIZE;
         }
     }
     virtual_pages_free(m_vaddr, vaddr, pages_num);

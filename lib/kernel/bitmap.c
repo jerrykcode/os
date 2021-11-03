@@ -82,10 +82,10 @@ void bitmap_setbit(struct bitmap *btmp, uint32_t bit_idx, uint8_t bit_val) {
     bit_idx %= 8;
     if (bit_val) {
         // 第bit_idx位由0更新为1
-        btmp->bits[byte_idx] |= 1 << (7 - bit_idx);
+        btmp->bits[byte_idx] |= (1 << (7 - bit_idx));
     }
     else {
         // 第bit_idx位由1更新为0
-        btmp->bits[byte_idx] &= ~(1 << (7 - bit_idx));
+        btmp->bits[byte_idx] &= (~(1 << (7 - bit_idx)));
     }
 }

@@ -57,6 +57,7 @@ static void read_cmd() {
 
 // 将cmd通过空格分割，解析成参数并存入argv, 返回参数个数argc
 static int32_t parse_cmd() {
+    memset(argv, 0, MAX_ARGC);
     int32_t argc = 0;
     char token = ' '; // 以空格为分隔符
     char *cmd_ptr = cmd;
@@ -120,6 +121,7 @@ void shell() {
             memset(&file_stat, 0, sizeof(struct stat_st));
             if (stat(argv[0], &file_stat) == -1) {
                 printf("can not access %s\n", argv[0]);
+                continue;
             }
 
             pid_t pid = fork();

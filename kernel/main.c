@@ -14,7 +14,9 @@
 #include "dir.h"
 #include "string.h"
 #include "shell.h"
+#include "global.h"
 
+void app_install();
 void init(void);
 void thread_1(void *);
 void thread_2(void *);
@@ -53,6 +55,8 @@ int main() {
     put_int_hex(0x00000000);
 
     init_all();
+   // app_install();
+
     process_execute(init, "init");   
  
 //    process_execute(usrprog_1, "usr1");
@@ -142,6 +146,22 @@ int main() {
         //console_put_str("Main ");
     }
     return (0);
+}
+
+void app_install() {
+    k_printf("app install begin!\n");
+    uint32_t file_size = 5560;
+    uint32_t sec_num = DIV_ROUND_UP(file_size, 512);
+    void *buf = sys_malloc(file_size);
+    struct disk_st *disk = &channels[0].devices[0];
+    ide_read(disk, 300, sec_num, buf);
+    int32_t fd = sys_open("/prog_no_arg", O_CREATE | O_RW);
+    if (fd != -1) {
+        if (sys_write(fd, buf, file_size) == file_size) {
+            k_printf("app install finished!\n");
+        }
+    }
+    sys_free(buf);
 }
 
 void init(void) {

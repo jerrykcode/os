@@ -27,10 +27,14 @@ enum SYSCALL_NR {
     SYS_READDIR,
     SYS_REWINDDIR,
     SYS_STAT,
-    SYS_PS
+    SYS_PS,
+/* 以下是调试使用的系统调用 */
+    DEBUG_VADDR_START
 };
 
-#define SYSCALL_NR 24
+#define SYSCALL_SYS_NR 24
+#define SYSCALL_DEBUG_NR 1
+#define SYSCALL_NR (SYSCALL_SYS_NR + SYSCALL_DEBUG_NR)
 
 struct dir_st;
 struct stat_st;
@@ -59,5 +63,8 @@ struct dir_entry_st *readdir(struct dir_st *dir);
 void rewinddir(struct dir_st *dir);
 int32_t stat(const char *path, struct stat_st *stat);
 void ps();
+
+/* 调试使用的系统调用 */
+void debug_vaddr_start();
 
 #endif
