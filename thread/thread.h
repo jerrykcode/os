@@ -91,11 +91,13 @@ struct task_st {
     struct list_node_st thread_node; // 任务队列节点
     struct list_node_st thread_ready_node; // 就绪队列节点
     uint32_t cwd_inode_id; // 进程所在的工作目录的inode号
+    int8_t exit_status; // 结束状态
     uint32_t stack_magic; // 判断栈溢出
 };
 
 void thread_environment_init();
 pid_t fork_pid();
+void release_pid(pid_t pid);
 struct task_st *current_thread();
 void task_init(struct task_st *task, char *name, enum task_status status, uint32_t priority);
 struct task_st *thread_start(char *name, uint32_t priority, thread_func func, void *args);
@@ -104,7 +106,9 @@ void schedule();
 void thread_block(enum task_status status);
 void thread_unblock(struct task_st *pthread);
 void thread_yield();
+void thread_exit(struct task_st *task_over, bool need_schedule);
 struct task_st *node_to_thread(list_node node);
+struct task_st *pid2thread(pid_t pid);
 void sys_ps();
 
 #endif

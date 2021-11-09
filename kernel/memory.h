@@ -60,6 +60,7 @@ void *malloc_kernel_page(uint32_t pages_num);
 void *malloc_user_page(uint32_t pages_num);
 void *malloc_page(enum pool_flags pf, uint32_t pages_num);
 void pages_free(uint32_t vaddr, uint32_t pages_num);
+void phy_page_free_in_exit(uint32_t phy_addr);
 void *malloc_page_with_vaddr(enum pool_flags pf, uint32_t vaddr);
 void *malloc_page_for_vaddr_in_fork(enum pool_flags pf, uint32_t vaddr);
 uint32_t *pte_ptr(uint32_t vaddr);
