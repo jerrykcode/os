@@ -1,3 +1,4 @@
 bochs.out
 *.bin
 *.o
+*.a

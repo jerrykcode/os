@@ -16,7 +16,7 @@
 #include "shell.h"
 #include "global.h"
 
-void app_install();
+void app_install(const char *app_name, uint32_t file_size, uint32_t lba);
 void init(void);
 void thread_1(void *);
 void thread_2(void *);
@@ -55,7 +55,8 @@ int main() {
     put_int_hex(0x00000000);
 
     init_all();
-   // app_install();
+    app_install("/app_no_arg", 5644, 300);
+    app_install("/app_arg", 5756, 360);
 
     process_execute(init, "init");   
  
@@ -148,14 +149,13 @@ int main() {
     return (0);
 }
 
-void app_install() {
+void app_install(const char *app_name, uint32_t file_size, uint32_t lba) {
     k_printf("app install begin!\n");
-    uint32_t file_size = 5560;
     uint32_t sec_num = DIV_ROUND_UP(file_size, 512);
     void *buf = sys_malloc(file_size);
     struct disk_st *disk = &channels[0].devices[0];
-    ide_read(disk, 300, sec_num, buf);
-    int32_t fd = sys_open("/prog_no_arg", O_CREATE | O_RW);
+    ide_read(disk, lba, sec_num, buf);
+    int32_t fd = sys_open(app_name, O_CREATE | O_RW);
     if (fd != -1) {
         if (sys_write(fd, buf, file_size) == file_size) {
             k_printf("app install finished!\n");
