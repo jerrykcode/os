@@ -10,6 +10,6 @@
 
 ## 编译运行
 
-见[build.md](https://github.com/jerrykcode/os/build.md)
+见[build.md](https://github.com/jerrykcode/os/blob/main/build.md)
 
 
