@@ -55,8 +55,8 @@ int main() {
     put_int_hex(0x00000000);
 
     init_all();
-    app_install("/app_no_arg", 5644, 300);
-    app_install("/app_arg", 5756, 360);
+//    app_install("/app_no_arg", 5644, 300);
+    app_install("/app_arg", 5952, 360);
 
     process_execute(init, "init");   
  

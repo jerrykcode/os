@@ -105,11 +105,12 @@ void list_remove(struct list_st *list, list_node node) {
         list->tail = pre;
 }
 
-void list_traversal(struct list_st *list, bool (*func)(list_node, int), int arg) {
+list_node list_traversal(struct list_st *list, bool (*func)(list_node, int), int arg) {
     list_node node = list->head;
     while (node) {
         if (func(node, arg))
-            break;
+            return node;
         node = node->next;
     }
+    return NULL;
 }

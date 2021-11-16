@@ -34,7 +34,7 @@ static void idle_thread_func(void *arg) {
 struct pid_pool_st {
     struct bitmap pool_btmp;
     uint32_t pid_start;
-    struct lock_st *pool_lock;
+    struct lock_st pool_lock;
 };
 
 struct pid_pool_st pid_pool;
@@ -275,28 +275,20 @@ struct task_st *node_to_thread(list_node node) {
 
 /* 根据pid查找线程栈 */
 
-static struct check_pid_arg {
-    pid_t pid;
-    struct task_st *thread;
-};
-
 // list_traversal回调函数
-static bool check_pid(list_node node, int arg) {
-    struct check_pid_arg *pid_arg = (struct check_pid_arg *)arg;
+static bool check_pid(list_node node, int pid) {
     struct task_st *thread = node_to_thread(node);
-    if (thread->pid == pid_arg->pid) {
-        pid_arg->thread = thread;
+    if (thread->pid == pid) {
         return true;
     }
-    pid_arg->thread = NULL;
     return false;
 }
 
 struct task_st *pid2thread(pid_t pid) {
-    struct check_pid_arg arg;
-    arg.pid = pid;
-    list_traversal(&threads_all, check_pid, (int)&arg);
-    return arg.thread;
+    enum intr_status old_status = intr_disable();
+    list_node node = list_traversal(&threads_all, check_pid, pid);
+    intr_set_status(old_status);
+    return node_to_thread(node);
 }
 
 static void pad_print(uint32_t pad_len, void *ptr, char format) {

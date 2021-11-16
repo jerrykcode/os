@@ -10,6 +10,7 @@
 #include "fs.h"
 #include "fork.h"
 #include "exec.h"
+#include "wait_exit.h"
 #include "debug.h"
 
 typedef void *syscall;
@@ -29,6 +30,8 @@ void syscall_init() {
     syscall_table[SYS_SLEEP]      = sys_sleep;
     syscall_table[SYS_FORK]       = sys_fork;
     syscall_table[SYS_EXECV]      = sys_execv;
+    syscall_table[SYS_WAIT]       = sys_wait;
+    syscall_table[SYS_EXIT]       = sys_exit;
     syscall_table[SYS_GETCWD]     = sys_getcwd;
     syscall_table[SYS_OPEN]       = sys_open;
     syscall_table[SYS_CLOSE]      = sys_close;
