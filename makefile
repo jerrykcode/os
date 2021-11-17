@@ -6,7 +6,7 @@ loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
 OBJS = main.o debug.o init.o timer.o syscall-init.o ide.o stdio.o stdio-kernel.o syscall.o interrupt.o thread.o process.o exec.o\
-	fork.o fs.o file.o inode.o dir.o memory.o console.o keyboard.o shell.o buildin_cmd.o ioqueue.o sync.o bitmap.o tss.o \
+	fork.o wait_exit.o fs.o file.o inode.o dir.o memory.o console.o keyboard.o shell.o buildin_cmd.o ioqueue.o sync.o bitmap.o tss.o \
 	string.o list.o print.o kernel.o switch.o 
 
 kernel.bin: $(OBJS)
@@ -75,7 +75,7 @@ exec.o: usrprog/exec.c usrprog/exec.h thread/thread.h kernel/memory.h fs/fs.h ke
 syscall.o: lib/usr/syscall.c lib/usr/syscall.h lib/stdint.h lib/kernel/asm.h thread/thread.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 syscall-init.o: usrprog/syscall-init.c usrprog/syscall-init.h lib/usr/syscall.h lib/stdint.h lib/kernel/print.h thread/thread.h \
-	device/console.h lib/string.h kernel/memory.h device/timer.h fs/fs.h usrprog/fork.h usrprog/exec.h
+	device/console.h lib/string.h kernel/memory.h device/timer.h fs/fs.h usrprog/fork.h usrprog/exec.h usrprog/wait_exit.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 stdio.o: lib/stdio.c lib/stdio.h lib/stddef.h lib/usr/syscall.h lib/string.h fs/file.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
@@ -100,6 +100,9 @@ shell.o: shell/shell.c shell/shell.h shell/buildin_cmd.h lib/stdio.h lib/string.
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 buildin_cmd.o: shell/buildin_cmd.c shell/buildin_cmd.h lib/string.h lib/usr/syscall.h lib/stddef.h lib/stdbool.h lib/stdio.h\
  	fs/fs.h fs/dir.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+wait_exit.o: usrprog/wait_exit.c usrprog/wait_exit.h thread/thread.h lib/stdint.h lib/stdbool.h lib/kernel/bitmap.h kernel/global.h\
+	lib/kernel/list.h kernel/interrupt.h lib/stddef.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 clean: 

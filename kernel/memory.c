@@ -446,6 +446,19 @@ void pages_free(uint32_t vaddr, uint32_t pages_num) {
     lock_release(m_lock);
 }
 
+/* 将一个物理页对应的位图位置0，不要改动页表, 进程的exit中需要此函数 */
+void phy_page_free_in_exit(uint32_t phy_addr) {
+    struct pool *m_pool;
+    if (phy_addr >= user_pool.phy_addr_start) {
+        m_pool = &user_pool;
+    }
+    else {
+        m_pool = &kernel_pool;
+    }
+    uint32_t bit_idx = (phy_addr - m_pool->phy_addr_start) / PAGE_SIZE;
+    bitmap_setbit(&m_pool->pool_btmp, bit_idx, BTMP_MEM_FREE);
+}
+
 void sys_free(void *ptr) {
     ASSERT(ptr != NULL);
     if (ptr != NULL) {

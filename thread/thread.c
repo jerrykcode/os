@@ -13,9 +13,10 @@
 #include "process.h"
 #include "global.h"
 
-struct lock_st pid_lock;
-
 extern void switch_to(struct task_st *cur, struct task_st *next);
+
+/* 主线程 */
+struct task_st *main_thread;
 
 /* 系统空闲时运行的线程 */
 struct task_st *idle_thread;
@@ -28,13 +29,39 @@ static void idle_thread_func(void *arg) {
 }
 
 /* 分配pid */
+
+// pid 池
+struct pid_pool_st {
+    struct bitmap pool_btmp;
+    uint32_t pid_start;
+    struct lock_st pool_lock;
+};
+
+struct pid_pool_st pid_pool;
+
+uint8_t pid_pool_btmp_bits[128] = {0}; // 最多1024个
+
+static void pid_pool_init() {
+    pid_pool.pool_btmp.bits = pid_pool_btmp_bits;
+    pid_pool.pool_btmp.btmp_bytes_len = 128;
+    bitmap_init(&pid_pool.pool_btmp, 0);
+    pid_pool.pid_start = 1;
+    lock_init(&pid_pool.pool_lock);
+}
+
 static pid_t alloc_pid() {
-    static pid_t pid = 0;
-    pid_t this_pid;
-    lock_acquire(&pid_lock);
-    this_pid = pid++;
-    lock_release(&pid_lock);
-    return this_pid;
+    lock_acquire(&pid_pool.pool_lock);
+    pid_t pid = bitmap_alloc(&pid_pool.pool_btmp, 1, 0);
+    bitmap_setbit(&pid_pool.pool_btmp, pid, 1);
+    lock_release(&pid_pool.pool_lock);
+    return pid + pid_pool.pid_start;
+}
+
+void release_pid(pid_t pid) {
+    int bit_idx = pid - pid_pool.pid_start;
+    lock_acquire(&pid_pool.pool_lock);
+    bitmap_setbit(&pid_pool.pool_btmp, bit_idx, 0);
+    lock_release(&pid_pool.pool_lock);
 }
 
 /* 为fork操作分配pid */
@@ -44,17 +71,17 @@ pid_t fork_pid() {
 
 /* 将kernel中的main函数完善成为主线程 */
 static void make_main_thread() {
-    struct task_st *main_task = current_thread();
-    task_init(main_task, "main", TASK_RUNNING, 31);
-    list_push_back(&threads_all, &main_task->thread_node);
+    main_thread = current_thread();
+    task_init(main_thread, "main", TASK_RUNNING, 31);
+    list_push_back(&threads_all, &main_thread->thread_node);
 }
 
 /* 初始化线程环境 */
 void thread_environment_init() {
     put_str("thread_environment_init start\n");
-    lock_init(&pid_lock);
     list_init(&threads_all);
     list_init(&threads_ready);
+    pid_pool_init();
     make_main_thread();
     idle_thread = thread_start("idle", 10, idle_thread_func, NULL);
     put_str("thread_environment_init end\n");
@@ -207,8 +234,61 @@ void thread_yield() {
     intr_set_status(old_status);
 }
 
+/* 线程退出函数，由其他线程调用，一般由父进程调用以销毁子进程。
+   删除线程栈以及页表
+   虚拟地址位图以及分配的内存在进程的exit()函数中释放 */
+void thread_exit(struct task_st *task_over, bool need_schedule) {
+    enum intr_status old_status = intr_disable();
+    ASSERT(task_over->status == TASK_DIED);
+
+    if (list_exist(&threads_ready, &task_over->thread_ready_node))
+        list_remove(&threads_ready, &task_over->thread_ready_node);
+
+    ASSERT(list_exist(&threads_all, &task_over->thread_node));
+    list_remove(&threads_all, &task_over->thread_node);
+
+    struct task_st *cur = current_thread();
+    uint32_t *page_table_backup = cur->page_table;
+    if (task_over->page_table != NULL) {
+        cur->page_table = NULL;
+        pages_free(task_over->page_table, 1);
+        cur->page_table = page_table_backup;
+    }
+
+    if (task_over != main_thread) {
+        cur->page_table = NULL;
+        pages_free(task_over, 1);
+        cur->page_table = page_table_backup;
+    }
+
+    release_pid(task_over->pid);
+
+    if (need_schedule)
+        schedule();
+
+    intr_set_status(old_status);
+}
+
 struct task_st *node_to_thread(list_node node) {
     return (struct task_st *)((uint32_t)node & 0xfffff000);
+}
+
+/* 根据pid查找线程栈 */
+
+// list_traversal回调函数
+static bool check_pid(list_node node, int pid) {
+    struct task_st *thread = node_to_thread(node);
+    if (thread->pid == pid) {
+        return true;
+    }
+    return false;
+}
+
+struct task_st *pid2thread(pid_t pid) {
+    enum intr_status old_status = intr_disable();
+    list_node node = list_traversal(&threads_all, check_pid, pid);
+    intr_set_status(old_status);
+    return node_to_thread(node);
 }
 
 static void pad_print(uint32_t pad_len, void *ptr, char format) {

@@ -14,6 +14,8 @@ enum SYSCALL_NR {
     SYS_SLEEP,
     SYS_FORK,
     SYS_EXECV,
+    SYS_WAIT,
+    SYS_EXIT,
     SYS_GETCWD,
     SYS_OPEN,
     SYS_CLOSE,
@@ -32,7 +34,7 @@ enum SYSCALL_NR {
     DEBUG_VADDR_START
 };
 
-#define SYSCALL_SYS_NR 24
+#define SYSCALL_SYS_NR 26
 #define SYSCALL_DEBUG_NR 1
 #define SYSCALL_NR (SYSCALL_SYS_NR + SYSCALL_DEBUG_NR)
 
@@ -49,6 +51,8 @@ void free(void *ptr);
 void sleep(uint32_t ms);
 pid_t fork();
 int32_t execv(const char *path, const char *argv[]);
+pid_t wait(int32_t *status);
+void exit(int32_t status);
 char *getcwd(char *buf, uint32_t size);
 int32_t open(char*pathname, uint8_t flags);
 int32_t close(int32_t fd);

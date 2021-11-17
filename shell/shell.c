@@ -126,11 +126,13 @@ void shell() {
 
             pid_t pid = fork();
             if (pid) {
-                while (1) ;
+                int32_t status;
+                pid_t cpid = wait(&status);
+                if (cpid != -1)
+                    printf("process with pid %d exit with status: %d", cpid, status);
             }
             else {
                 execv(argv[0], argv);
-                while (1);
             }
         }
         printf("\n");
