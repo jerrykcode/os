@@ -165,15 +165,22 @@ void app_install(const char *app_name, uint32_t file_size, uint32_t lba) {
 }
 
 void init(void) {
+    int fd[2];
+    pipe(fd);
     pid_t ret_pid = fork();
     if (ret_pid) {
         printf("I am father, my pid is %d; ret pid: %d\n", getpid(), ret_pid);
-
+        close(fd[0]);
+        write(fd[1], "message from father: hello\n", 27);
         while (1);
     }
     else {
+        close(fd[1]);
         printf("I am child, my pid is %d; ret pid: %d\n", getpid(), ret_pid);
         clear();
+        char buf[32] = {0};
+        read(fd[0], buf, 27);
+        printf("Recive %s", buf);
         shell();
     }
 }

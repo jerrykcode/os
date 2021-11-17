@@ -19,5 +19,6 @@ struct ioqueue_st {
 void ioqueue_init(struct ioqueue_st *ioqueue);
 void ioqueue_putchar(struct ioqueue_st *ioqueue, char c);
 char ioqueue_getchar(struct ioqueue_st *ioqueue);
+uint32_t ioqueue_length(struct ioqueue_st *ioqueue);
 
 #endif

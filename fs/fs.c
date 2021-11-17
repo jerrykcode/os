@@ -16,6 +16,8 @@
 #include "thread.h"
 #include "keyboard.h"
 #include "console.h"
+#include "pipe.h"
+#include "interrupt.h"
 
 #define SUPER_BLOCK_MAGIC_FILE_SYS  0x20210819
 
@@ -388,7 +390,7 @@ int32_t sys_open(const char *pathname, uint8_t flags) {
     return fd;
 }
 
-static int32_t fd_local2global(int32_t local_fd) {
+int32_t fd_local2global(int32_t local_fd) {
     if (local_fd < 0)
         return -1;
     return current_thread()->fd_table[local_fd];    
@@ -398,8 +400,25 @@ int32_t sys_close(int32_t fd) {
     if (fd < stderr_fd) {
         return -1;
     }
+    int32_t result;
     int32_t global_fd = fd_local2global(fd);
-    int32_t result = file_close(&file_table[global_fd]);
+    if (is_pipe(fd)) {
+        if (--file_table[global_fd].fd_pos == 0) {
+            // 删除管道file_table[global_fd].fd_inode
+            struct task_st *cur = current_thread();
+            enum intr_status old_status = intr_disable();
+            uint32_t *page_table_backup = cur->page_table;
+            cur->page_table = NULL;
+            pages_free(file_table[global_fd].fd_inode, 1);
+            cur->page_table = page_table_backup;
+            intr_set_status(old_status);
+            file_table[global_fd].fd_inode = NULL;
+        }
+        result = 0;
+    }
+    else {
+        result = file_close(&file_table[global_fd]);
+    }
     current_thread()->fd_table[fd] = -1;
     return result;
 }
@@ -436,6 +455,10 @@ int32_t sys_write(int32_t fd, const void *buf, uint32_t count) {
         return -1;
     }
 
+    if (is_pipe(fd)) {
+        return pipe_write(fd, buf, count);
+    }
+
     if (fd == stdout_fd) {
         char tmp_buf[1024] = {0};
         memcpy(tmp_buf, buf, count);
@@ -458,6 +481,9 @@ int32_t sys_read(int32_t fd, void *dest, uint32_t count) {
     if (fd < 0) {
         k_printf("sys_read: error fd: %d\n", fd);
         return -1;
+    }
+    else if (is_pipe(fd)) {
+        return pipe_read(fd, dest, count);
     }
     else if (fd == stdout_fd) {
         k_printf("sys_read: can't read from stdout!\n");

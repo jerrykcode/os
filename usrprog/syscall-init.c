@@ -11,6 +11,7 @@
 #include "fork.h"
 #include "exec.h"
 #include "wait_exit.h"
+#include "pipe.h"
 #include "debug.h"
 
 typedef void *syscall;
@@ -32,6 +33,7 @@ void syscall_init() {
     syscall_table[SYS_EXECV]      = sys_execv;
     syscall_table[SYS_WAIT]       = sys_wait;
     syscall_table[SYS_EXIT]       = sys_exit;
+    syscall_table[SYS_PIPE]       = sys_pipe;
     syscall_table[SYS_GETCWD]     = sys_getcwd;
     syscall_table[SYS_OPEN]       = sys_open;
     syscall_table[SYS_CLOSE]      = sys_close;

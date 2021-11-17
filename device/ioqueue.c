@@ -88,3 +88,14 @@ char ioqueue_getchar(struct ioqueue_st *ioqueue) {
 
     return c;
 }
+
+uint32_t ioqueue_length(struct ioqueue_st *ioqueue) {
+    lock_acquire(&ioqueue->lock);
+    uint32_t length;
+    if (ioqueue->tail >= ioqueue->head)
+        length = ioqueue->tail - ioqueue->head;
+    else
+        length = IOQUEUE_SIZE - (ioqueue->head - ioqueue->tail);
+    lock_release(&ioqueue->lock);
+    return length;
+}

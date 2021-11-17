@@ -6,8 +6,8 @@ loader.bin: boot/loader.S
 	nasm -I include/ -o $@ $<
 
 OBJS = main.o debug.o init.o timer.o syscall-init.o ide.o stdio.o stdio-kernel.o syscall.o interrupt.o thread.o process.o exec.o\
-	fork.o wait_exit.o fs.o file.o inode.o dir.o memory.o console.o keyboard.o shell.o buildin_cmd.o ioqueue.o sync.o bitmap.o tss.o \
-	string.o list.o print.o kernel.o switch.o 
+	fork.o wait_exit.o pipe.o fs.o file.o inode.o dir.o memory.o console.o keyboard.o shell.o buildin_cmd.o ioqueue.o sync.o bitmap.o\
+	tss.o string.o list.o print.o kernel.o switch.o 
 
 kernel.bin: $(OBJS)
 	ld -Ttext 0xc0001500 -e main -o $@ $^
@@ -67,7 +67,7 @@ process.o: usrprog/process.c usrprog/process.h kernel/memory.h kernel/global.h l
 	lib/kernel/list.h kernel/interrupt.h kernel/debug.h lib/kernel/bitmap.h lib/stddef.h lib/string.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 fork.o: usrprog/fork.c usrprog/fork.h thread/thread.h kernel/memory.h kernel/global.h usrprog/process.h fs/file.h kernel/debug.h \
-	lib/kernel/list.h
+	lib/kernel/list.h shell/pipe.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 exec.o: usrprog/exec.c usrprog/exec.h thread/thread.h kernel/memory.h fs/fs.h kernel/debug.h lib/string.h lib/stdbool.h lib/stdint.h\
 	lib/stddef.h lib/kernel/asm.h
@@ -75,7 +75,7 @@ exec.o: usrprog/exec.c usrprog/exec.h thread/thread.h kernel/memory.h fs/fs.h ke
 syscall.o: lib/usr/syscall.c lib/usr/syscall.h lib/stdint.h lib/kernel/asm.h thread/thread.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 syscall-init.o: usrprog/syscall-init.c usrprog/syscall-init.h lib/usr/syscall.h lib/stdint.h lib/kernel/print.h thread/thread.h \
-	device/console.h lib/string.h kernel/memory.h device/timer.h fs/fs.h usrprog/fork.h usrprog/exec.h usrprog/wait_exit.h
+	device/console.h lib/string.h kernel/memory.h device/timer.h fs/fs.h usrprog/fork.h usrprog/exec.h usrprog/wait_exit.h shell/pipe.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 stdio.o: lib/stdio.c lib/stdio.h lib/stddef.h lib/usr/syscall.h lib/string.h fs/file.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
@@ -85,7 +85,8 @@ ide.o: device/ide.c device/ide.h thread/sync.h lib/stdio.h lib/kernel/stdio-kern
 	kernel/debug.h lib/string.h kernel/global.h lib/kernel/bitmap.h lib/kernel/io.h device/timer.h lib/stddef.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 fs.o: fs/fs.c fs/fs.h fs/super_block.h fs/inode.h fs/dir.h device/ide.h kernel/memory.h lib/string.h lib/kernel/stdio-kernel.h \
-	kernel/global.h lib/kernel/bitmap.h kernel/debug.h thread/thread.h fs/file.h thread/thread.h device/keyboard.h device/console.h
+	kernel/global.h lib/kernel/bitmap.h kernel/debug.h thread/thread.h fs/file.h thread/thread.h device/keyboard.h device/console.h \
+	shell/pipe.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 file.o: fs/file.c fs/file.h fs/fs.h fs/dir.h fs/inode.h fs/super_block.h device/ide.h lib/kernel/stdio-kernel.h lib/stdint.h \
 	lib/stddef.h lib/kernel/list.h thread/thread.h kernel/interrupt.h
@@ -104,6 +105,9 @@ buildin_cmd.o: shell/buildin_cmd.c shell/buildin_cmd.h lib/string.h lib/usr/sysc
 wait_exit.o: usrprog/wait_exit.c usrprog/wait_exit.h thread/thread.h lib/stdint.h lib/stdbool.h lib/kernel/bitmap.h kernel/global.h\
 	lib/kernel/list.h kernel/interrupt.h lib/stddef.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+pipe.o: shell/pipe.c shell/pipe.h lib/stdint.h lib/stdbool.h fs/fs.h fs/file.h device/ioqueue.h
+	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
+
 
 clean: 
 	rm *.o *.bin
