@@ -41,27 +41,27 @@ tar zxvf bochs-x.x.x.tar.gz
 
 > 先进入到目录 cd bochs-x.x.x，开始 configure、make、make install 三步曲
 > 
-> ./configure \\
-> --prefix=/your_path/bochs \\
-> --enable-debugger \\
-> --enable-disasm \\
-> --enable-iodebug \\
-> --enable-x86-debugger \\
-> --with-x \\
-> --with-x11 \\
+> ./configure \\  
+> --prefix=/your_path/bochs \\  
+> --enable-debugger \\  
+> --enable-disasm \\  
+> --enable-iodebug \\  
+> --enable-x86-debugger \\  
+> --with-x \\  
+> --with-x11 \\  
 > 
-> 注意各行结尾的\'\\\'字符前面有个空格。下面简要说明一下 configure 的参数。
-> --prefix=/your_path/bochs 是用来指定 bochs 的安装目录，根据个人实际情况将 your_path 替换为自己待安装的路径。
-> --enable-debugger 打开 bochs 自己的调试器。
-> --enable-disasm 使 bochs 支持反汇编。
-> --enable-iodebug 启用 io 接口调试器。
-> --enable-x86-debugger 支持 x86 调试器。
-> --with-x 使用 x windows。
-> --with-x11 使用 x11 图形用户接口。
-> configure 之后，会生成 Makefile，可以开始编译了。
-> make
-> 若编译时没有问题，就直接执行下面这句。
-> make install
+> 注意各行结尾的\'\\\'字符前面有个空格。下面简要说明一下 configure 的参数。  
+> --prefix=/your_path/bochs 是用来指定 bochs 的安装目录，根据个人实际情况将 your_path 替换为自己待安装的路径。  
+> --enable-debugger 打开 bochs 自己的调试器。  
+> --enable-disasm 使 bochs 支持反汇编。  
+> --enable-iodebug 启用 io 接口调试器。  
+> --enable-x86-debugger 支持 x86 调试器。  
+> --with-x 使用 x windows。  
+> --with-x11 使用 x11 图形用户接口。  
+> configure 之后，会生成 Makefile，可以开始编译了。  
+> make  
+> 若编译时没有问题，就直接执行下面这句。  
+> make install  
 
 4. 配置bochs
    
