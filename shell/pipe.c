@@ -3,6 +3,7 @@
 #include "file.h"
 #include "memory.h"
 #include "ioqueue.h"
+#include "thread.h"
 
 bool is_pipe(uint32_t local_fd) {
     uint32_t global_fd = fd_local2global(local_fd);
@@ -61,4 +62,16 @@ uint32_t pipe_write(int32_t fd, void *buf, uint32_t count) {
     }
 
     return count;
+}
+
+/* 文件重定向 */
+void sys_fd_redirect(int32_t old_localfd, int32_t new_localfd) {
+    struct task_st *cur = current_thread();
+    if (old_localfd < 3) {
+        cur->fd_table[old_localfd] = new_localfd;      
+    }
+    else {
+        int32_t new_globalfd = cur->fd_table[new_localfd];
+        cur->fd_table[old_localfd] = new_globalfd;
+    }
 }

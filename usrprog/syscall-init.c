@@ -34,6 +34,7 @@ void syscall_init() {
     syscall_table[SYS_WAIT]       = sys_wait;
     syscall_table[SYS_EXIT]       = sys_exit;
     syscall_table[SYS_PIPE]       = sys_pipe;
+    syscall_table[SYS_FD_REDIRECT]= sys_fd_redirect;
     syscall_table[SYS_GETCWD]     = sys_getcwd;
     syscall_table[SYS_OPEN]       = sys_open;
     syscall_table[SYS_CLOSE]      = sys_close;

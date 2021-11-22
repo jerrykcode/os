@@ -105,7 +105,7 @@ buildin_cmd.o: shell/buildin_cmd.c shell/buildin_cmd.h lib/string.h lib/usr/sysc
 wait_exit.o: usrprog/wait_exit.c usrprog/wait_exit.h thread/thread.h lib/stdint.h lib/stdbool.h lib/kernel/bitmap.h kernel/global.h\
 	lib/kernel/list.h kernel/interrupt.h lib/stddef.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
-pipe.o: shell/pipe.c shell/pipe.h lib/stdint.h lib/stdbool.h fs/fs.h fs/file.h device/ioqueue.h
+pipe.o: shell/pipe.c shell/pipe.h lib/stdint.h lib/stdbool.h fs/fs.h fs/file.h device/ioqueue.h thread/thread.h
 	gcc $(INCLUDE) -c -o $@ $< $(CFLAGS)
 
 

@@ -125,6 +125,10 @@ int32_t pipe(int32_t pipefd[2]) {
     return _syscall1(SYS_PIPE, pipefd);
 }
 
+void fd_redirect(int32_t old_localfd, int32_t new_localfd) {
+    _syscall2(SYS_FD_REDIRECT, old_localfd, new_localfd);
+}
+
 char *getcwd(char *buf, uint32_t size) {
     return _syscall2(SYS_GETCWD, buf, size);
 }
