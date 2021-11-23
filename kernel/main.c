@@ -26,9 +26,10 @@ void usrprog_2(void);
 int main() {
 
     init_all();
-//    app_install("/app_no_arg", 5644, 300);
-//    app_install("/app_arg", 5952, 360);
-    app_install("/cat", 6632, 300);
+    int32_t fd = sys_open("/hello", O_CREATE | O_RW);
+    sys_write(fd, (void *)"hello", 6);
+    sys_close(fd);
+    app_install("/cat", 6588, 300);
 
     process_execute(init, "init");   
 
@@ -41,18 +42,21 @@ int main() {
 }
 
 void app_install(const char *app_name, uint32_t file_size, uint32_t lba) {
-    k_printf("app install begin!\n");
-    uint32_t sec_num = DIV_ROUND_UP(file_size, 512);
-    void *buf = sys_malloc(file_size);
-    struct disk_st *disk = &channels[0].devices[0];
-    ide_read(disk, lba, sec_num, buf);
-    int32_t fd = sys_open(app_name, O_CREATE | O_RW);
-    if (fd != -1) {
-        if (sys_write(fd, buf, file_size) == file_size) {
-            k_printf("app install finished!\n");
+    struct stat_st stat;
+    if (sys_stat(app_name, &stat) == -1) {
+        k_printf("app install begin!\n");
+        uint32_t sec_num = DIV_ROUND_UP(file_size, 512);
+        void *buf = sys_malloc(file_size);
+        struct disk_st *disk = &channels[0].devices[0];
+        ide_read(disk, lba, sec_num, buf);
+        int32_t fd = sys_open(app_name, O_CREATE | O_RW);
+        if (fd != -1) {
+            if (sys_write(fd, buf, file_size) == file_size) {
+                k_printf("app install finished!\n");
+            }
         }
+        sys_free(buf);
     }
-    sys_free(buf);
 }
 
 void init(void) {

@@ -29,7 +29,6 @@ int main(int argc, char *argv[]) {
     }
     else {
         getcwd(abs_path, 512);
-        strcat(abs_path, '/');
         strcat(abs_path, path);
     }
 
