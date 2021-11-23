@@ -45,7 +45,7 @@ struct stat_st;
 
 uint32_t getpid();
 uint32_t write(int32_t fd, const void *buf, uint32_t count);
-uint32_t read(int32_t fd, void *dest, uint32_t count);
+int32_t read(int32_t fd, void *dest, uint32_t count);
 void putchar(char ch);
 void clear();
 void *malloc(uint32_t size);

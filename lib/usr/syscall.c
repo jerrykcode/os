@@ -75,7 +75,7 @@ uint32_t write(int32_t fd, const void *buf, uint32_t count) {
 }
 
 /* 从文件描述符fd对应的文件读取count字节数据存入dest */
-uint32_t read(int32_t fd, void *dest, uint32_t count) {
+int32_t read(int32_t fd, void *dest, uint32_t count) {
     return _syscall3(SYS_READ, fd, dest, count);
 }
 
