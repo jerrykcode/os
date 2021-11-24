@@ -29,7 +29,7 @@ int main() {
     int32_t fd = sys_open("/hello", O_CREATE | O_RW);
     sys_write(fd, (void *)"hello", 6);
     sys_close(fd);
-    app_install("/cat", 6588, 300);
+    app_install("/cat", 6684, 300);
 
     process_execute(init, "init");   
 

@@ -11,7 +11,12 @@ int main(int argc, char *argv[]) {
     }
     if (argc == 1) {
         char buf[512] = {0};
-        read(0, buf, 512);
+        for (int i = 0; i < 512; i++) {
+            read(0, &buf[i], 1);
+            printf("%c", buf[i]);
+            if (buf[i] == '\r' || buf[i] == '\n')
+                break;
+        }
         printf("%s", buf);
         exit(0);
     }
