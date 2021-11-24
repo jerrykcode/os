@@ -78,8 +78,25 @@ static int32_t parse_cmd(char *cmd) {
     return argc;
 }
 
+static void println(char *str) { // 直接printf("...\n");就编译报错。很奇怪哦
+    printf("%s%c", str, '\n');
+}
+
 static void cmd_execute(int argc) {
-    if (strcmp(argv[0], "ls") == 0) {
+    if (strcmp(argv[0], "help") == 0) {
+        println("buildin commands:");
+        println("    ls: list file or directory information");
+        println("    cd: change current working directory");
+        println("    mkdir: create a new directory");
+        println("    rm: remove file or empty directory");
+        println("    pwd: print current working directory");
+        println("    ps: print process information");
+        println("    clear: clear screen");
+        println("    help: display this help");
+        println("shortcut key:");
+        println("    ctrl + l: clear screen");
+        println("    ctrl + u: clear input");
+    } else if (strcmp(argv[0], "ls") == 0) {
         buildin_ls(argc, argv);
     }
     else if (strcmp(argv[0], "cd") == 0) {
