@@ -19,8 +19,8 @@ static void release_prog_resources() {
     uint32_t *pde_vaddr;
     uint32_t pte_phyaddr;
 
-    for (int i = 0; i < 768; i++) { // 枚举页目录表page_table中存储的PDE
-                                    // 第768项及以上存储的PDE是用于映射内核虚拟地址的页表，所有进程共享，不能删除
+    for (int i = 1; i < 768; i++) { // 枚举页目录表page_table中存储的PDE
+                                    // 第0项以及第[768, 1022]项存储的PDE是用于映射内核虚拟地址的页表，所有进程共享，不能删除
         pde_phyaddr = *(page_table_vaddr + i); // page_table中存储的PDE，这是一个物理地址，不能直接访问
         if ((pde_phyaddr & 0x00000001) == 0) // 页表不存在
             continue;
